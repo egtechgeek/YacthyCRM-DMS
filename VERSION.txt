@@ -1,0 +1,145 @@
+YachtCRM-DMS Version 1.0.0
+Release Date: November 6, 2025
+Build: 2025.11.06
+
+Copyright © 2025 E G Tech Solutions LLC™
+All Rights Reserved.
+
+===========================================
+CHANGELOG
+===========================================
+
+Version 1.0.0 (November 6, 2025)
+--------------------------------
+Initial Release
+
+CORE FEATURES:
+- Customer Relationship Management
+- User Management with 5 role types (Admin, Office Staff, Accountant, Employee, Customer)
+- Yacht Management module
+- Vehicle/RV Dealer Management System (DMS)
+- Parts Inventory management with categories
+- Service Catalog
+- Professional Invoice generation with PDF export
+- Quote/Estimate system with PDF export
+- Payment tracking and recording
+- Appointment scheduling with calendar view
+- Maintenance scheduling and history
+- Email template system
+- Comprehensive reporting
+
+ACCOUNTING MODULE:
+- Chart of Accounts with hierarchical structure
+- Double-entry journal entries
+- Accounts Payable (Bills & Vendors)
+- Bank account management
+- Bank transaction recording
+- Bank reconciliation
+- Financial Reports:
+  * Profit & Loss Statement
+  * Balance Sheet
+  * Trial Balance
+  * Accounts Receivable Aging
+  * Accounts Payable Aging
+- QuickBooks Desktop import (Chart of Accounts, Customers, Vendors, Items)
+
+TIMECLOCK MODULE:
+- Employee punch in/out
+- Time entry management
+- Time off request system
+- Approval workflow
+- CSV export for payroll
+- PDF timesheet generation
+
+SECURITY & ACCESS:
+- Multi-Factor Authentication (TOTP + Email backup)
+- Role-based permissions with granular control
+- Interactive permissions matrix
+- Secure password reset
+- Recovery codes for 2FA
+- API token authentication (Sanctum)
+
+PAYMENT PROCESSING:
+- Stripe integration (virtual terminal)
+- Square integration (virtual terminal)
+- Multiple payment methods
+- Payment history tracking
+
+CUSTOMIZATION:
+- Module Control (enable/disable Yachts, DMS, Timeclock, Accounting)
+- Customizable navigation menu per role
+- Branding customization (logos, CRM name)
+- PDF template editor for invoices and quotes
+- Email template customization
+
+SYSTEM FEATURES:
+- Data import/export (CSV)
+- Responsive design (mobile-friendly)
+- Dark mode compatible
+- Pagination on all list views
+- Advanced search and filtering
+- Real-time validation
+- Comprehensive error handling
+
+TECHNICAL STACK:
+- Backend: Laravel 11 + PHP 8.2
+- Frontend: React 18 + Material-UI
+- Database: MySQL 8.0 / MariaDB 10.6+
+- Authentication: Laravel Sanctum
+- PDF Generation: DomPDF
+- Build Tool: Vite
+- State Management: React Query
+
+DEPLOYMENT:
+- Compatible with Linux (Apache/Nginx)
+- Compatible with Windows Server (IIS)
+- Plesk optimized
+- Automated installation script
+- Comprehensive documentation
+
+===========================================
+
+SYSTEM REQUIREMENTS:
+- PHP 8.1+ (8.2 recommended)
+- MySQL 8.0+ or MariaDB 10.6+
+- Node.js 18 LTS or 20 LTS
+- Composer 2.5+
+- 4GB RAM minimum (8GB recommended)
+- 2 CPU cores minimum (4 recommended)
+- 20GB storage minimum (40GB recommended)
+
+BROWSER SUPPORT:
+- Chrome 100+
+- Firefox 100+
+- Safari 15+
+- Edge 100+
+
+MODULES INCLUDED:
+✓ Customer Management
+✓ Yacht Management
+✓ Vehicle/RV DMS
+✓ Timeclock
+✓ Accounting
+✓ Parts & Services
+✓ Invoicing & Quotes
+✓ Payments
+✓ Appointments
+✓ Email System
+✓ Reports & Analytics
+
+DOCUMENTATION INCLUDED:
+✓ README.md - Overview and quick start
+✓ QUICKSTART.md - Fast installation guide
+✓ PLESK_CONFIGURATION.md - Plesk hosting setup
+✓ WINDOWS_IIS_SETUP.md - Windows/IIS deployment
+✓ SYSTEM_REQUIREMENTS.md - Detailed specifications
+✓ install.php - Automated installation script
+
+===========================================
+
+For installation instructions, see README.md
+For technical support, contact: [Your support email]
+For updates and releases, visit: [Your website]
+
+Built with ❤️ by E G Tech Solutions LLC
+

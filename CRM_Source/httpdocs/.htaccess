@@ -1,0 +1,24 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Backend API requests go to Laravel
+    RewriteCond %{REQUEST_URI} ^/backend/
+    RewriteRule ^backend/(.*)$ backend/index.php [L,QSA]
+    
+    # Serve static files from frontend directly (no PHP processing)
+    RewriteCond %{REQUEST_URI} ^/frontend/
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Frontend SPA - send to index.html if file doesn't exist
+    RewriteCond %{REQUEST_URI} ^/frontend/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^frontend/(.*)$ frontend/index.html [L]
+    
+    # Default redirect to frontend
+    RewriteCond %{REQUEST_URI} !^/(frontend|backend)/
+    RewriteRule ^(.*)$ /frontend/ [L,R=302]
+</IfModule>

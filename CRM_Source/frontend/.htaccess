@@ -1,0 +1,21 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /frontend/
+    
+    # Don't rewrite files or directories that exist
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Rewrite everything else to index.html (for React Router)
+    RewriteRule . /frontend/index.html [L]
+</IfModule>
+
+# Disable caching for JS and CSS files to ensure updates are loaded
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css|html)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
+</IfModule>
+

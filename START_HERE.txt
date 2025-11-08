@@ -1,0 +1,241 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              YACHTCRM DEPLOYMENT PACKAGE v1.0.0              ║
+║                                                              ║
+║           An E G Tech Solutions LLC™ System © 2025           ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+📦 WHAT'S IN THIS PACKAGE?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Complete YachtCRM-DMS source code (backend + frontend)
+✓ TWO installation methods (web-based + command-line)
+✓ Comprehensive documentation (8 guides)
+✓ Platform-specific configuration guides
+✓ Automated setup scripts
+✓ Default data and configurations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 QUICK START (CHOOSE YOUR METHOD)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+METHOD 1: WEB INSTALLER (No SSH Required!) ⭐ RECOMMENDED
+─────────────────────────────────────────────────────────────
+
+Perfect for: Shared hosting, cPanel, Plesk, or users without SSH
+
+Steps:
+  1. Upload this entire folder to your web server
+  2. Navigate to: http://your-domain.com/installer/
+  3. Follow the wizard (5-10 minutes)
+  4. Delete installer/ folder when done
+
+Documentation: installer/README.md or INSTALLATION_GUIDE.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+METHOD 2: COMMAND-LINE INSTALLER (SSH Required)
+─────────────────────────────────────────────────────────────
+
+Perfect for: VPS, dedicated servers, advanced users
+
+Steps:
+  1. Upload files to server
+  2. Run: php install.php install
+  3. Follow prompts (5-10 minutes)
+
+Also supports:
+  - Updates: php install.php update
+  - Reconfigure: php install.php configure
+
+Documentation: QUICKSTART.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION INDEX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+START HERE:
+  📄 README.md ..................... Overview and package contents
+  📄 INSTALLATION_GUIDE.md ......... Detailed installation instructions
+
+PLATFORM-SPECIFIC:
+  📄 PLESK_CONFIGURATION.md ........ Plesk hosting setup (symlinks!)
+  📄 WINDOWS_IIS_SETUP.md .......... Windows Server with IIS
+  📄 QUICKSTART.md ................. Linux/Nginx/Apache quick setup
+
+REFERENCE:
+  📄 SYSTEM_REQUIREMENTS.md ........ CPU, RAM, software requirements
+  📄 DEPLOYMENT_SUMMARY.md ......... Technical deployment details
+  📄 VERSION.txt ................... Version info and changelog
+
+INSTALLERS:
+  📄 install.php ................... CLI installation script
+  📄 installer/index.php ........... Web-based installer
+  📄 installer/README.md ........... Web installer documentation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ SYSTEM REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MINIMUM:
+  • CPU: 2 cores
+  • RAM: 4 GB
+  • Storage: 20 GB SSD
+  • PHP: 8.1+
+  • MySQL: 8.0+ or MariaDB 10.6+
+  • Node.js: 18 LTS
+  • Composer: 2.5+
+
+RECOMMENDED:
+  • CPU: 4 cores
+  • RAM: 8 GB
+  • Storage: 40 GB SSD
+  • PHP: 8.2
+  • MySQL: 8.0+
+  • Node.js: 20 LTS
+
+See SYSTEM_REQUIREMENTS.md for details.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ COMPATIBILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPERATING SYSTEMS:
+  ✅ Ubuntu Linux 20.04, 22.04
+  ✅ Debian 11, 12
+  ✅ CentOS 8+ / Rocky Linux / AlmaLinux
+  ✅ Windows Server 2019, 2022
+  ✅ Windows 10/11 Pro (development)
+  ✅ macOS (development)
+
+WEB SERVERS:
+  ✅ Apache 2.4+ (with mod_rewrite)
+  ✅ Nginx 1.18+
+  ✅ IIS 10+ (with URL Rewrite module)
+
+HOSTING:
+  ✅ Plesk - Fully documented
+  ✅ cPanel - Compatible
+  ✅ DirectAdmin - Compatible
+  ✅ VPS/Cloud - All major providers
+  ✅ Dedicated Servers
+  ⚠️  Shared Hosting - Possible but not ideal
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 INSTALLATION CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE YOU BEGIN:
+  ☐ Server meets minimum requirements
+  ☐ PHP 8.1+ installed with required extensions
+  ☐ MySQL/MariaDB installed and running
+  ☐ Database created (or have credentials to create one)
+  ☐ Node.js and npm installed
+  ☐ Composer installed
+  ☐ Domain pointing to server (optional, can use IP)
+
+INSTALLATION STEPS:
+  ☐ Upload files to server
+  ☐ Run installer (web or CLI)
+  ☐ Complete wizard/prompts
+  ☐ Configure web server
+  ☐ Delete installer/ directory
+  ☐ Test application access
+  ☐ Login with admin credentials
+
+POST-INSTALLATION:
+  ☐ Configure SSL certificate
+  ☐ Upload company logos
+  ☐ Enable desired modules
+  ☐ Create staff users
+  ☐ Set up email (optional)
+  ☐ Configure payment providers (optional)
+  ☐ Import existing data (optional)
+  ☐ Schedule backups
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 PLATFORM-SPECIFIC SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+USING PLESK?
+  → Read: PLESK_CONFIGURATION.md
+  → CRITICAL: Must create symlinks in httpdocs/
+  → Configuration: Special .htaccess setup required
+
+USING WINDOWS/IIS?
+  → Read: WINDOWS_IIS_SETUP.md
+  → Required: URL Rewrite module
+  → Configuration: web.config files included
+
+USING STANDARD LINUX?
+  → Read: QUICKSTART.md
+  → Configuration: Apache/Nginx virtual host examples
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 IMPORTANT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  DELETE INSTALLER AFTER INSTALLATION!
+    For security, remove the installer/ directory after setup.
+    
+⚠️  PLESK USERS: Symlinks are CRITICAL!
+    You MUST create symlinks from httpdocs/ to backend/public
+    and frontend/dist. See PLESK_CONFIGURATION.md.
+
+⚠️  WINDOWS USERS: Install URL Rewrite Module!
+    IIS requires this module for Laravel routing.
+    Download from Microsoft's website.
+
+✓  NO SSH REQUIRED!
+    The web installer works entirely through your browser.
+    Perfect for shared hosting environments.
+
+✓  AUTOMATED UPDATES INCLUDED!
+    CLI installer supports updates: php install.php update
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 SUPPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Documentation: All guides included in this package
+Technical Issues: Check backend/storage/logs/laravel.log
+Platform Help: See platform-specific guides (PLESK, WINDOWS, etc.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 RECOMMENDED INSTALLATION PATH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For most users (no SSH access):
+  1. Read: README.md (this gives you the overview)
+  2. Upload files to your server
+  3. Access: http://your-domain.com/installer/
+  4. Follow the web wizard
+  5. Read your platform guide (PLESK or WINDOWS) for final config
+  6. Done!
+
+For advanced users (with SSH):
+  1. Read: QUICKSTART.md
+  2. Run: php install.php install
+  3. Configure web server
+  4. Done!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ready to begin? Open README.md in your preferred text editor or 
+web browser to get started!
+
+For the fastest installation, use the web installer:
+http://your-domain.com/installer/
+
+Good luck! 🚀
+
