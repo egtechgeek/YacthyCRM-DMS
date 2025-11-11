@@ -28,9 +28,9 @@ cleanup() {
 
 trap cleanup EXIT
 
-LOG_INFO() { printf "\033[1;32m[INFO]\033[0m %s\n" "$*"; }
-LOG_WARN() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
-LOG_ERROR() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"; }
+LOG_INFO() { printf "\033[1;32m[INFO]\033[0m %s\n" "$*" >&2; }
+LOG_WARN() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+LOG_ERROR() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; }
 
 select_operation_mode() {
   LOG_INFO "Select operation mode:"
@@ -293,7 +293,7 @@ collect_install_inputs() {
   CRM_SOURCE_URL=$(prompt_with_default "GitHub archive URL for YachtCRM-DMS source" "${default_archive_url}")
   INSTALL_ROOT="${INSTALL_ROOT_TARGET}"
   LOG_INFO "Installation directory fixed to ${INSTALL_ROOT_TARGET}"
-  APP_NAME=$(prompt_with_default "Application display name" "YachtCRM-DMS")
+  APP_NAME=$(prompt_with_default "Application display name" "YachtyCRM-DMS")
   APP_URL=$(prompt_with_default "Public application URL (no trailing slash)" "https://crm.example.com")
   SERVER_NAME=$(prompt_with_default "nginx server_name value" "$(echo "${APP_URL}" | awk -F[/:] '{print $4}')")
 
