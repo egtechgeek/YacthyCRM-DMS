@@ -270,6 +270,8 @@ class InvoiceController extends Controller
 
         DB::beginTransaction();
         try {
+            $manualStatus = $request->has('status') ? $request->input('status') : null;
+
             // Update invoice fields
             $invoice->update($request->only([
                 'customer_id',
@@ -304,6 +306,12 @@ class InvoiceController extends Controller
 
             // Recalculate totals
             $invoice->calculateTotals();
+
+            // Reapply explicit status if provided (calculateTotals sets status automatically)
+            if (!is_null($manualStatus)) {
+                $invoice->status = $manualStatus;
+                $invoice->save();
+            }
 
             DB::commit();
 

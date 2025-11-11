@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { Box } from '@mui/material'
 import { AuthProvider } from './contexts/AuthContext'
 import Login from './components/auth/Login'
@@ -54,8 +55,22 @@ import Header from './components/Header'
 import Navigation from './components/Navigation'
 import Footer from './components/Footer'
 import { AssetLabelProvider } from './context/AssetLabelContext'
+import useCachedBranding from './hooks/useCachedBranding'
 
 function App() {
+  const { branding } = useCachedBranding()
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const brandingName =
+      branding?.crm_name?.trim() ||
+      branding?.business_name?.trim() ||
+      'YachtCRM'
+
+    document.title = brandingName
+  }, [branding])
+
   return (
     <AssetLabelProvider>
       <AuthProvider>

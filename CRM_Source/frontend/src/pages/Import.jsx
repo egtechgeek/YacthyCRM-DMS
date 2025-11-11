@@ -20,10 +20,17 @@ import api from '../services/api'
 
 const Import = () => {
   const [tabValue, setTabValue] = useState(0)
-  const [file, setFile] = useState(null)
+  const [sqlFile, setSqlFile] = useState(null)
+  const [csvFile, setCsvFile] = useState(null)
+  const [jsonFile, setJsonFile] = useState(null)
   const [importType, setImportType] = useState('customers')
-  const [importResult, setImportResult] = useState(null)
-  const [error, setError] = useState(null)
+  const [jsonImportType, setJsonImportType] = useState('complete')
+  const [sqlResult, setSqlResult] = useState(null)
+  const [csvResult, setCsvResult] = useState(null)
+  const [jsonResult, setJsonResult] = useState(null)
+  const [sqlError, setSqlError] = useState(null)
+  const [csvError, setCsvError] = useState(null)
+  const [jsonError, setJsonError] = useState(null)
 
   // InvoicePlane SQL import
   const invoicePlaneMutation = useMutation(
@@ -34,11 +41,11 @@ const Import = () => {
     },
     {
       onSuccess: (response) => {
-        setImportResult(response.data)
-        setError(null)
+        setSqlResult(response.data)
+        setSqlError(null)
       },
       onError: (err) => {
-        setError(err.response?.data?.message || 'Import failed')
+        setSqlError(err.response?.data?.message || 'Import failed')
       },
     }
   )
@@ -52,37 +59,76 @@ const Import = () => {
     },
     {
       onSuccess: (response) => {
-        setImportResult(response.data)
-        setError(null)
+        setCsvResult(response.data)
+        setCsvError(null)
         alert(`Import completed: ${response.data.imported} records imported`)
       },
       onError: (err) => {
-        setError(err.response?.data?.message || 'Import failed')
+        setCsvError(err.response?.data?.message || 'Import failed')
       },
     }
   )
 
-  const handleFileSelect = (e) => {
-    setFile(e.target.files[0])
-    setError(null)
-    setImportResult(null)
+  const jsonMutation = useMutation(
+    async (formData) => {
+      return await api.post('/import/json', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    },
+    {
+      onSuccess: (response) => {
+        setJsonResult(response.data)
+        setJsonError(null)
+        alert('JSON import completed successfully')
+      },
+      onError: (err) => {
+        setJsonError(err.response?.data?.message || 'Import failed')
+      },
+    }
+  )
+
+  const handleSqlFileSelect = (e) => {
+    setSqlFile(e.target.files[0] || null)
+    setSqlError(null)
+    setSqlResult(null)
+  }
+
+  const handleCsvFileSelect = (e) => {
+    setCsvFile(e.target.files[0] || null)
+    setCsvError(null)
+    setCsvResult(null)
+  }
+
+  const handleJsonFileSelect = (e) => {
+    setJsonFile(e.target.files[0] || null)
+    setJsonError(null)
+    setJsonResult(null)
   }
 
   const handleInvoicePlaneImport = () => {
-    if (!file) return
+    if (!sqlFile) return
 
     const formData = new FormData()
-    formData.append('sql_file', file)
+    formData.append('sql_file', sqlFile)
     invoicePlaneMutation.mutate(formData)
   }
 
   const handleCSVImport = () => {
-    if (!file) return
+    if (!csvFile) return
 
     const formData = new FormData()
-    formData.append('csv_file', file)
+    formData.append('csv_file', csvFile)
     formData.append('import_type', importType)
     csvMutation.mutate(formData)
+  }
+
+  const handleJSONImport = () => {
+    if (!jsonFile) return
+
+    const formData = new FormData()
+    formData.append('json_file', jsonFile)
+    formData.append('import_type', jsonImportType)
+    jsonMutation.mutate(formData)
   }
 
   return (
@@ -99,6 +145,7 @@ const Import = () => {
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
             <Tab label="InvoicePlane SQL" />
             <Tab label="CSV Import" />
+            <Tab label="JSON Import" />
           </Tabs>
 
           {tabValue === 0 && (
@@ -121,26 +168,26 @@ const Import = () => {
                   type="file"
                   hidden
                   accept=".sql"
-                  onChange={handleFileSelect}
+                  onChange={handleSqlFileSelect}
                 />
               </Button>
 
-              {file && (
+              {sqlFile && (
                 <Box sx={{ mt: 2, mb: 2 }}>
-                  <Typography variant="body2">Selected: {file.name}</Typography>
+                  <Typography variant="body2">Selected: {sqlFile.name}</Typography>
                 </Box>
               )}
 
-              {error && (
+              {sqlError && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
+                  {sqlError}
                 </Alert>
               )}
 
               <Button
                 variant="contained"
                 onClick={handleInvoicePlaneImport}
-                disabled={!file || invoicePlaneMutation.isLoading}
+                disabled={!sqlFile || invoicePlaneMutation.isLoading}
                 fullWidth
               >
                 {invoicePlaneMutation.isLoading ? <CircularProgress size={24} /> : 'Import InvoicePlane Data'}
@@ -181,26 +228,26 @@ const Import = () => {
                   type="file"
                   hidden
                   accept=".csv"
-                  onChange={handleFileSelect}
+                  onChange={handleCsvFileSelect}
                 />
               </Button>
 
-              {file && (
+              {csvFile && (
                 <Box sx={{ mt: 2, mb: 2 }}>
-                  <Typography variant="body2">Selected: {file.name}</Typography>
+                  <Typography variant="body2">Selected: {csvFile.name}</Typography>
                 </Box>
               )}
 
-              {error && (
+              {csvError && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
+                  {csvError}
                 </Alert>
               )}
 
               <Button
                 variant="contained"
                 onClick={handleCSVImport}
-                disabled={!file || csvMutation.isLoading}
+                disabled={!csvFile || csvMutation.isLoading}
                 fullWidth
               >
                 {csvMutation.isLoading ? <CircularProgress size={24} /> : `Import ${importType.charAt(0).toUpperCase() + importType.slice(1)}`}
@@ -232,9 +279,97 @@ const Import = () => {
             </Box>
           )}
 
-          {importResult && (
+          {tabValue === 2 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                JSON Import
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Import data from JSON backups. Use the "Complete" option for full system restores exported from the Export Data screen.
+              </Typography>
+
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel>Import Scope</InputLabel>
+                <Select
+                  value={jsonImportType}
+                  label="Import Scope"
+                  onChange={(e) => setJsonImportType(e.target.value)}
+                >
+                  <MenuItem value="complete">Complete Backup</MenuItem>
+                  <MenuItem value="customers">Customers</MenuItem>
+                  <MenuItem value="parts">Parts Inventory</MenuItem>
+                  <MenuItem value="services">Services</MenuItem>
+                </Select>
+              </FormControl>
+
+              <Button
+                variant="contained"
+                component="label"
+                startIcon={<UploadIcon />}
+                sx={{ mb: 2 }}
+              >
+                Select JSON File
+                <input
+                  type="file"
+                  hidden
+                  accept=".json,application/json"
+                  onChange={handleJsonFileSelect}
+                />
+              </Button>
+
+              {jsonFile && (
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="body2">Selected: {jsonFile.name}</Typography>
+                </Box>
+              )}
+
+              {jsonError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {jsonError}
+                </Alert>
+              )}
+
+              {jsonImportType === 'complete' && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  Complete restore will upsert data across all major tables. Ensure the backup file is trusted and current.
+                </Alert>
+              )}
+
+              <Button
+                variant="contained"
+                onClick={handleJSONImport}
+                disabled={!jsonFile || jsonMutation.isLoading}
+                fullWidth
+              >
+                {jsonMutation.isLoading ? <CircularProgress size={24} /> : `Import ${jsonImportType === 'complete' ? 'Complete Backup' : jsonImportType.charAt(0).toUpperCase() + jsonImportType.slice(1)}`}
+              </Button>
+            </Box>
+          )}
+
+          {sqlResult && tabValue === 0 && (
             <Alert severity="success" sx={{ mt: 3 }}>
-              Import completed successfully! {importResult.imported || 0} records imported.
+              InvoicePlane import completed successfully!
+            </Alert>
+          )}
+
+          {csvResult && tabValue === 1 && (
+            <Alert severity="success" sx={{ mt: 3 }}>
+              CSV import completed successfully! {csvResult.imported || 0} records imported.
+            </Alert>
+          )}
+
+          {jsonResult && tabValue === 2 && (
+            <Alert severity="success" sx={{ mt: 3 }}>
+              JSON import completed successfully.
+              {jsonResult.counts && (
+                <Box component="span" sx={{ display: 'block', mt: 1 }}>
+                  {Object.entries(jsonResult.counts).map(([table, count]) => (
+                    <Typography key={table} variant="caption" sx={{ display: 'block' }}>
+                      {table}: {count} records processed
+                    </Typography>
+                  ))}
+                </Box>
+              )}
             </Alert>
           )}
         </Paper>

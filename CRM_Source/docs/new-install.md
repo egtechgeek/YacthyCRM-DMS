@@ -22,7 +22,7 @@ Follow these steps to deploy a fresh instance of YachtCRM-DMS.
    - Mail driver settings
 2. Run `php artisan key:generate` from the `backend/` directory.
 
-For the frontend, create `frontend/.env` or `.env.production` and define at minimum:
+For the frontend, create `frontend/.env` and define at minimum:
 ```
 VITE_API_BASE_URL=https://your-domain.com/backend/api
 ```

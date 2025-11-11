@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Vehicle;
+use Illuminate\Support\Carbon;
 
 class Invoice extends Model
 {
@@ -95,12 +96,10 @@ class Invoice extends Model
      */
     public static function generateInvoiceNumber(): string
     {
-        $yy = date('y');      // 2-digit year
-        $mm = date('m');      // 2-digit month
-        $dd = date('d');      // 2-digit day
-        $hhmm = date('Hi');   // 24-hour time (e.g., 1311 for 1:11pm)
-        
-        $baseNumber = "{$yy}-{$mm}{$dd}{$hhmm}";
+        $timezone = config('app.timezone') ?: 'UTC';
+        $now = Carbon::now($timezone);
+
+        $baseNumber = $now->format('y-mdHi');
         
         // Check if this number already exists (unlikely but possible)
         $exists = self::where('invoice_number', $baseNumber)->exists();

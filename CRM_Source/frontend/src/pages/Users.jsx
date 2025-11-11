@@ -24,9 +24,18 @@ import {
   FormControl,
   InputLabel,
   Pagination,
+  Chip,
 } from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material'
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  Email as EmailIcon,
+} from '@mui/icons-material'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+import InviteCustomerDialog from '../components/InviteCustomerDialog'
 
 const Users = () => {
   const [open, setOpen] = useState(false)
@@ -36,7 +45,14 @@ const Users = () => {
   const [sortBy, setSortBy] = useState('name')
   const [sortOrder, setSortOrder] = useState('asc')
   const [page, setPage] = useState(1)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteCustomer, setInviteCustomer] = useState(null)
   const queryClient = useQueryClient()
+  const { user: authUser } = useAuth()
+
+  const canSendInvitation = !!authUser?.permissions?.email_invites?.includes('send')
+  const canManageStatus = !!authUser?.permissions?.users?.includes('change_status')
+  const statusOptions = ['active', 'inactive', 'suspended']
 
   const { data, isLoading, error } = useQuery(['users', searchQuery, sortBy, sortOrder, page], async () => {
     const params = {
@@ -74,10 +90,26 @@ const Users = () => {
     }
   )
 
+  const statusMutation = useMutation(
+    ({ id, status }) => api.put(`/users/${id}`, { status }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('users')
+      },
+      onError: (error) => {
+        alert(error.response?.data?.message || 'Failed to update user status')
+      },
+    }
+  )
+
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       deleteMutation.mutate(id)
     }
+  }
+
+  const handleStatusChange = (id, newStatus) => {
+    statusMutation.mutate({ id, status: newStatus })
   }
 
   if (isLoading) return <Container><Typography>Loading...</Typography></Container>
@@ -130,6 +162,7 @@ const Users = () => {
               <MenuItem value="name">Name</MenuItem>
               <MenuItem value="email">Email</MenuItem>
               <MenuItem value="role">Role</MenuItem>
+              <MenuItem value="status">Status</MenuItem>
             </Select>
           </FormControl>
           
@@ -154,6 +187,7 @@ const Users = () => {
               <TableCell>Name</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
+              <TableCell>Status</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -163,7 +197,42 @@ const Users = () => {
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.role}</TableCell>
+                <TableCell>
+                  {canManageStatus && user.id !== authUser?.id ? (
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                      <Select
+                        value={user.status || 'active'}
+                        onChange={(e) => handleStatusChange(user.id, e.target.value)}
+                        disabled={statusMutation.isLoading}
+                      >
+                        {statusOptions.map((status) => (
+                          <MenuItem key={status} value={status}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <Chip
+                      label={(user.status || 'active').charAt(0).toUpperCase() + (user.status || 'active').slice(1)}
+                      color={user.status === 'active' ? 'success' : user.status === 'suspended' ? 'warning' : 'default'}
+                      size="small"
+                    />
+                  )}
+                </TableCell>
                 <TableCell align="right">
+                  {canSendInvitation && user.role === 'customer' && user.customer && (
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setInviteCustomer(user.customer)
+                        setInviteOpen(true)
+                      }}
+                      title="Send Invitation"
+                    >
+                      <EmailIcon />
+                    </IconButton>
+                  )}
                   <IconButton size="small" onClick={() => {
                     setEditingUser(user)
                     setOpen(true)
@@ -203,6 +272,14 @@ const Users = () => {
           setEditingUser(null)
         }}
         user={editingUser}
+      />
+      <InviteCustomerDialog
+        open={inviteOpen}
+        onClose={() => {
+          setInviteOpen(false)
+          setInviteCustomer(null)
+        }}
+        customer={inviteCustomer}
       />
     </Container>
   )

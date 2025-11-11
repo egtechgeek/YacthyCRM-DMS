@@ -10,6 +10,7 @@ use App\Models\GeneralLedgerEntry;
 use Illuminate\Http\Request;
 use App\Support\Branding;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class AccountingReportController extends Controller
 {
@@ -585,12 +586,21 @@ class AccountingReportController extends Controller
         $query = GeneralLedgerEntry::selectRaw('account_id, SUM(debit) as total_debit, SUM(credit) as total_credit')
             ->whereNotNull('account_id');
 
-        if ($startDate) {
-            $query->whereDate('transaction_date', '>=', $startDate);
+        $dateColumn = null;
+        if (Schema::hasColumn('general_ledger_entries', 'transaction_date')) {
+            $dateColumn = 'transaction_date';
+        } elseif (Schema::hasColumn('general_ledger_entries', 'entry_date')) {
+            $dateColumn = 'entry_date';
         }
 
-        if ($endDate) {
-            $query->whereDate('transaction_date', '<=', $endDate);
+        if ($dateColumn) {
+            if ($startDate) {
+                $query->whereDate($dateColumn, '>=', $startDate);
+            }
+
+            if ($endDate) {
+                $query->whereDate($dateColumn, '<=', $endDate);
+            }
         }
 
         return $query

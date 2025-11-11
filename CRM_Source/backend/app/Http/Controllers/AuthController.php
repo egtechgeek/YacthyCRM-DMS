@@ -37,15 +37,13 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'customer',
+            'role' => 'customer',
+            'status' => 'inactive',
         ]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
-
         return response()->json([
-            'message' => 'User registered successfully',
+            'message' => 'Registration received. An administrator will activate your account shortly.',
             'user' => $user,
-            'token' => $token
         ], 201);
     }
 
@@ -74,6 +72,13 @@ class AuthController extends Controller
 
         $user = Auth::user();
         $user->load('mfaSetting');
+        
+        if ($user->status !== 'active') {
+            Auth::logout();
+            return response()->json([
+                'message' => 'Your account is not active. Please contact support.',
+            ], 403);
+        }
         
         // Check if MFA is enabled
         $mfaEnabled = $user->mfaSetting && $user->mfaSetting->mfa_enabled;

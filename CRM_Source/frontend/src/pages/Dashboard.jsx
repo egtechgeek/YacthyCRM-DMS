@@ -2,9 +2,11 @@ import { Container, Typography, Box, Paper, Grid, CircularProgress } from '@mui/
 import { useAuth } from '../contexts/AuthContext'
 import { useQuery } from 'react-query'
 import api from '../services/api'
+import useCachedBranding from '../hooks/useCachedBranding'
 
 const Dashboard = () => {
   const { user } = useAuth()
+  const { branding, isLoading: brandingLoading } = useCachedBranding()
 
   const { data: stats, isLoading } = useQuery('dashboard-stats', async () => {
     const response = await api.get('/dashboard/stats')
@@ -34,6 +36,11 @@ const Dashboard = () => {
     { label: 'Pending Quotes', value: stats?.pending_quotes || 0, color: '#7b1fa2' },
   ]
 
+  const brandingName =
+    branding?.crm_name?.trim() ||
+    branding?.business_name?.trim() ||
+    'YachtCRM'
+
   return (
     <Container>
       <Box sx={{ mt: 4, mb: 4 }}>
@@ -44,7 +51,7 @@ const Dashboard = () => {
           Welcome, {user?.name}!
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-          Daves RV Center CRM & DMS
+          {brandingLoading ? 'Loading branding…' : brandingName}
         </Typography>
 
         {canViewStats && (

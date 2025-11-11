@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\Part;
 use App\Models\Service;
 use App\Models\Appointment;
+use Illuminate\Support\Facades\DB;
 use App\Models\Vehicle;
 
 class ExportController extends Controller
@@ -30,6 +31,12 @@ class ExportController extends Controller
         $format = $request->input('format', 'csv');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
+
+        if ($type === 'complete' && $format !== 'json') {
+            return response()->json([
+                'message' => 'Complete export is only available in JSON format',
+            ], 422);
+        }
 
         $data = $this->getExportData($type, $dateFrom, $dateTo);
 
@@ -51,6 +58,8 @@ class ExportController extends Controller
             case 'customers':
                 $query = Customer::query();
                 break;
+            case 'complete':
+                return $this->getCompleteData();
             case 'yachts':
                 $query = Yacht::with('customer');
                 break;
@@ -88,6 +97,46 @@ class ExportController extends Controller
         }
 
         return $query->get()->toArray();
+    }
+
+    /**
+     * Gather complete dataset for backup/restore
+     */
+    private function getCompleteData(): array
+    {
+        $tables = [
+            'users',
+            'customers',
+            'yachts',
+            'vehicles',
+            'quotes',
+            'quote_items',
+            'invoices',
+            'invoice_items',
+            'payments',
+            'parts',
+            'services',
+            'appointments',
+            'settings',
+            'modules',
+            'navigation_order',
+            'role_permissions',
+            'time_entries',
+            'time_off_requests',
+            'maintenance_schedules',
+            'maintenance_history',
+        ];
+
+        $data = [];
+
+        foreach ($tables as $table) {
+            $data[$table] = DB::table($table)
+                ->get()
+                ->map(fn ($row) => (array) $row)
+                ->toArray();
+        }
+
+        return $data;
     }
 
     /**

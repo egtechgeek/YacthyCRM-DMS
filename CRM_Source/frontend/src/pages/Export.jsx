@@ -44,6 +44,14 @@ const Export = () => {
     }
   }, [assetLabels.yachtEnabled, assetLabels.dmsEnabled, dataType])
 
+  useEffect(() => {
+    if (dataType === 'complete') {
+      setFormat('json')
+      setDateFrom('')
+      setDateTo('')
+    }
+  }, [dataType])
+
   const handleExport = async () => {
     setLoading(true)
     try {
@@ -107,6 +115,7 @@ const Export = () => {
                   <MenuItem value="parts">Parts Inventory</MenuItem>
                   <MenuItem value="services">Services</MenuItem>
                   <MenuItem value="appointments">Appointments</MenuItem>
+                  <MenuItem value="complete">Complete (Full Backup)</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -118,6 +127,7 @@ const Export = () => {
                   value={format}
                   label="Export Format"
                   onChange={(e) => setFormat(e.target.value)}
+                  disabled={dataType === 'complete'}
                 >
                   <MenuItem value="csv">CSV (Excel Compatible)</MenuItem>
                   <MenuItem value="json">JSON</MenuItem>
@@ -134,6 +144,7 @@ const Export = () => {
                 onChange={(e) => setDateFrom(e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 helperText="Filter by creation date"
+                disabled={dataType === 'complete'}
               />
             </Grid>
 
@@ -146,6 +157,7 @@ const Export = () => {
                 onChange={(e) => setDateTo(e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 helperText="Filter by creation date"
+                disabled={dataType === 'complete'}
               />
             </Grid>
 
@@ -173,6 +185,9 @@ const Export = () => {
           </Typography>
           <Typography variant="body2" paragraph>
             • <strong>JSON Format:</strong> Complete data structure, useful for backups and integrations
+          </Typography>
+          <Typography variant="body2" paragraph>
+            • <strong>Complete Backup:</strong> Exports all major tables in JSON format for full system backup and restoration.
           </Typography>
           <Typography variant="body2" paragraph>
             • <strong>Date Filters:</strong> Optional - leave empty to export all records

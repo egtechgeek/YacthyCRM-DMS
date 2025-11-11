@@ -26,8 +26,17 @@ import {
   MenuItem,
   Pagination,
 } from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as ViewIcon, Search as SearchIcon } from '@mui/icons-material'
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  Search as SearchIcon,
+  Email as EmailIcon,
+} from '@mui/icons-material'
 import api from '../services/api'
+import InviteCustomerDialog from '../components/InviteCustomerDialog'
+import { useAuth } from '../contexts/AuthContext'
 
 const Customers = () => {
   const [open, setOpen] = useState(false)
@@ -37,12 +46,16 @@ const Customers = () => {
   const [sortBy, setSortBy] = useState('name')
   const [sortOrder, setSortOrder] = useState('asc')
   const [page, setPage] = useState(1)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteCustomer, setInviteCustomer] = useState(null)
+  const { user: authUser } = useAuth()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const returnTo = searchParams.get('return_to') ? decodeURIComponent(searchParams.get('return_to')) : null
   const shouldAutoCreate = searchParams.get('mode') === 'create'
+  const canSendInvitation = !!authUser?.permissions?.email_invites?.includes('send')
 
   const { data, isLoading, error } = useQuery(['customers', searchQuery, sortBy, sortOrder, page], async () => {
     const params = {
@@ -214,6 +227,18 @@ const Customers = () => {
                   <IconButton size="small" onClick={() => navigate(`/customers/${customer.id}`)}>
                     <ViewIcon />
                   </IconButton>
+                  {canSendInvitation && (
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setInviteCustomer(customer)
+                        setInviteOpen(true)
+                      }}
+                      title="Send Invitation"
+                    >
+                      <EmailIcon />
+                    </IconButton>
+                  )}
                   <IconButton size="small" onClick={() => {
                     setEditingCustomer(customer)
                     setOpen(true)
@@ -251,6 +276,14 @@ const Customers = () => {
         onClose={closeDialog}
         customer={editingCustomer}
         onCreated={handleCustomerCreated}
+      />
+      <InviteCustomerDialog
+        open={inviteOpen}
+        onClose={() => {
+          setInviteOpen(false)
+          setInviteCustomer(null)
+        }}
+        customer={inviteCustomer}
       />
     </Container>
   )

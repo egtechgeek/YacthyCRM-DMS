@@ -87,6 +87,7 @@ const Navigation = () => {
     'calendar': '/appointments/calendar',
     'maintenance': '/maintenance',
     'reports': '/reports',
+  'email-log': '/email-log',
     'settings': '/settings',
   }
 
@@ -117,6 +118,7 @@ const Navigation = () => {
     { text: 'Calendar View', icon: <CalendarIcon />, path: '/appointments/calendar', roles: ['admin', 'office_staff', 'employee'] },
     { text: 'Maintenance', icon: <CalendarIcon />, path: '/maintenance', roles: ['admin', 'office_staff', 'employee'], module: 'yacht' },
     { text: 'Reports', icon: <ReportsIcon />, path: '/reports', roles: ['admin', 'office_staff', 'employee'] },
+    { text: 'Email Log', icon: <EmailIcon />, path: '/email-log', roles: ['admin', 'office_staff'] },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings', roles: ['admin', 'office_staff', 'employee', 'customer'] },
   ]
 

@@ -22,6 +22,7 @@ const Register = () => {
     password_confirmation: '',
   })
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const { register } = useAuth()
@@ -56,11 +57,18 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     try {
-      await register(formData)
-      navigate('/dashboard')
+      const response = await register(formData)
+      setSuccess(response?.message || 'Registration submitted successfully.')
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
+      })
     } catch (err) {
       setError(
         err.response?.data?.message || 'Registration failed. Please try again.'
@@ -101,6 +109,11 @@ const Register = () => {
           {error && (
             <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
               {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
+              {success} You will be able to sign in once an administrator activates your account.
             </Alert>
           )}
 

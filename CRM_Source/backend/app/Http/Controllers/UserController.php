@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Models\RolePermission;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
@@ -41,7 +42,7 @@ class UserController extends Controller
         $sortBy = $request->input('sort_by', 'name');
         $sortOrder = $request->input('sort_order', 'asc');
         
-        $allowedSorts = ['name', 'email', 'role', 'created_at'];
+        $allowedSorts = ['name', 'email', 'role', 'status', 'created_at'];
         if (in_array($sortBy, $allowedSorts)) {
             $query->orderBy($sortBy, $sortOrder);
         } else {
@@ -85,6 +86,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', Password::defaults()],
             'role' => ['required', 'in:admin,office_staff,accountant,employee,customer'],
+            'status' => ['sometimes', 'in:active,inactive,suspended'],
         ]);
 
         if ($validator->fails()) {
@@ -99,6 +101,7 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
+            'status' => $request->input('status', 'active'),
         ]);
 
         return response()->json([
@@ -125,6 +128,7 @@ class UserController extends Controller
             'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,' . $id],
             'password' => ['sometimes', Password::defaults()],
             'role' => ['sometimes', 'in:admin,office_staff,accountant,employee,customer'],
+            'status' => ['sometimes', 'in:active,inactive,suspended'],
         ]);
 
         if ($validator->fails()) {
@@ -144,7 +148,17 @@ class UserController extends Controller
             return response()->json(['message' => 'You cannot change your own role'], 403);
         }
 
-        $targetUser->update($request->only(['name', 'email', 'role']));
+        if ($request->has('status')) {
+            if (!RolePermission::hasPermission($user->role, 'users', 'change_status')) {
+                return response()->json(['message' => 'Unauthorized to change user status'], 403);
+            }
+
+            if ($targetUser->id === $user->id) {
+                return response()->json(['message' => 'You cannot change your own status'], 403);
+            }
+        }
+
+        $targetUser->update($request->only(['name', 'email', 'role', 'status']));
 
         if ($request->has('password')) {
             $targetUser->password = Hash::make($request->password);

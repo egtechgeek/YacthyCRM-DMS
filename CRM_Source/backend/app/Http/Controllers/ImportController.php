@@ -7,6 +7,8 @@ use App\Models\Customer;
 use App\Models\Part;
 use App\Models\Service;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ImportController extends Controller
 {
@@ -59,6 +61,79 @@ class ImportController extends Controller
                 'errors' => $result['errors'],
             ], 200);
 
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Import JSON data (partial or complete backup)
+     */
+    public function importJSON(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized - Admin access required'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'json_file' => ['required', 'file', 'mimes:json,txt'],
+            'import_type' => ['nullable', 'in:customers,parts,services,complete'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $file = $request->file('json_file');
+        $importType = $request->input('import_type');
+
+        $payload = json_decode(file_get_contents($file->getPathname()), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json([
+                'message' => 'Invalid JSON file: ' . json_last_error_msg(),
+            ], 422);
+        }
+
+        if (!$importType) {
+            $importType = $this->detectJsonImportType($payload);
+            if (!$importType) {
+                return response()->json([
+                    'message' => 'Unable to determine import type. Please select an import type.',
+                ], 422);
+            }
+        }
+
+        try {
+            switch ($importType) {
+                case 'customers':
+                    $data = $this->normalizeJsonArray($payload);
+                    $result = $this->importCustomers($data);
+                    break;
+                case 'parts':
+                    $data = $this->normalizeJsonArray($payload);
+                    $result = $this->importParts($data);
+                    break;
+                case 'services':
+                    $data = $this->normalizeJsonArray($payload);
+                    $result = $this->importServices($data);
+                    break;
+                case 'complete':
+                    $result = $this->importCompleteBackup($payload);
+                    break;
+                default:
+                    return response()->json(['message' => 'Invalid import type'], 422);
+            }
+
+            return response()->json([
+                'message' => 'Import completed',
+                'imported' => $result['imported'] ?? null,
+                'errors' => $result['errors'] ?? [],
+                'counts' => $result['counts'] ?? null,
+                'details' => $result['details'] ?? null,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Import failed: ' . $e->getMessage()], 500);
         }
@@ -188,5 +263,125 @@ class ImportController extends Controller
         }
 
         return ['imported' => $imported, 'errors' => $errors];
+    }
+
+    /**
+     * Detect import type based on JSON payload
+     */
+    private function detectJsonImportType($payload): ?string
+    {
+        if (!is_array($payload)) {
+            return null;
+        }
+
+        $isAssoc = array_keys($payload) !== range(0, count($payload) - 1);
+
+        if ($isAssoc) {
+            $knownTables = $this->getCompleteBackupTables();
+            $matches = array_intersect(array_keys($payload), $knownTables);
+            if (!empty($matches)) {
+                return 'complete';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize JSON payload to an array of rows
+     */
+    private function normalizeJsonArray($payload): array
+    {
+        if (is_array($payload)) {
+            $isAssoc = array_keys($payload) !== range(0, count($payload) - 1);
+            if ($isAssoc) {
+                return [$payload];
+            }
+            return $payload;
+        }
+
+        return [];
+    }
+
+    /**
+     * Import complete backup JSON (multiple tables)
+     */
+    private function importCompleteBackup(array $payload): array
+    {
+        $tables = $this->getCompleteBackupTables();
+        $processed = [];
+
+        DB::beginTransaction();
+        Schema::disableForeignKeyConstraints();
+
+        try {
+            foreach ($tables as $table) {
+                if (!array_key_exists($table, $payload) || !is_array($payload[$table])) {
+                    continue;
+                }
+
+                $rows = $this->normalizeJsonArray($payload[$table]);
+                $rows = array_map(function ($row) {
+                    return is_array($row) ? $row : (array) $row;
+                }, $rows);
+
+                if (empty($rows)) {
+                    $processed[$table] = 0;
+                    continue;
+                }
+
+                $hasId = array_key_exists('id', $rows[0]);
+
+                foreach (array_chunk($rows, 500) as $chunk) {
+                    if ($hasId) {
+                        DB::table($table)->upsert($chunk, ['id']);
+                    } else {
+                        DB::table($table)->insert($chunk);
+                    }
+                }
+
+                $processed[$table] = count($rows);
+            }
+
+            Schema::enableForeignKeyConstraints();
+            DB::commit();
+
+            return [
+                'counts' => $processed,
+            ];
+        } catch (\Exception $exception) {
+            Schema::enableForeignKeyConstraints();
+            DB::rollBack();
+            throw $exception;
+        }
+    }
+
+    /**
+     * Tables included in complete backup/restore
+     */
+    private function getCompleteBackupTables(): array
+    {
+        return [
+            'users',
+            'customers',
+            'yachts',
+            'vehicles',
+            'quotes',
+            'quote_items',
+            'invoices',
+            'invoice_items',
+            'payments',
+            'parts',
+            'services',
+            'appointments',
+            'settings',
+            'modules',
+            'navigation_order',
+            'role_permissions',
+            'time_entries',
+            'time_off_requests',
+            'maintenance_schedules',
+            'maintenance_history',
+        ];
     }
 }

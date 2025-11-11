@@ -210,6 +210,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Import (Admin only)
     Route::post('/import/csv', [\App\Http\Controllers\ImportController::class, 'importCSV']);
+    Route::post('/import/json', [\App\Http\Controllers\ImportController::class, 'importJSON']);
 
     // Appointment management
     Route::apiResource('appointments', \App\Http\Controllers\AppointmentController::class);

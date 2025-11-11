@@ -11,25 +11,29 @@
             color: #333;
         }
         .header {
+            width: 100%;
             margin-bottom: 30px;
-            text-align: center;
+        }
+        .header td {
+            vertical-align: top;
         }
         .header img {
-            max-width: 300px;
+            max-width: 260px;
             height: auto;
             display: block;
-            margin: 0 auto;
+        }
+        .header-details {
+            text-align: right;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .header-details .business-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 4px;
         }
         .invoice-info {
-            display: flex;
-            justify-content: space-between;
             margin-bottom: 30px;
-        }
-        .invoice-details {
-            width: 48%;
-        }
-        .customer-details {
-            width: 48%;
         }
         table {
             width: 100%;
@@ -64,126 +68,141 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        @php
-            $logoCandidates = [
-                $branding['logo_invoice'] ?? null,
-                $branding['logo_header'] ?? null,
-                $branding['logo_login'] ?? null,
-            ];
+    @php
+        $logoCandidates = [
+            $branding['logo_invoice'] ?? null,
+            $branding['logo_header'] ?? null,
+            $branding['logo_login'] ?? null,
+        ];
 
-            $logoSrc = null;
-            foreach ($logoCandidates as $candidate) {
-                if (!$candidate) {
-                    continue;
-                }
-                $candidatePath = storage_path('app/public/' . $candidate);
-                if (file_exists($candidatePath)) {
-                    $logoData = base64_encode(file_get_contents($candidatePath));
-                    $extension = pathinfo($candidatePath, PATHINFO_EXTENSION) ?: 'png';
-                    $logoSrc = 'data:image/' . strtolower($extension) . ';base64,' . $logoData;
-                    break;
-                }
+        $logoSrc = null;
+        foreach ($logoCandidates as $candidate) {
+            if (!$candidate) {
+                continue;
             }
-            $businessName = $branding['business_name'] ?? ($branding['crm_name'] ?? config('app.name'));
-        @endphp
+            $candidatePath = storage_path('app/public/' . $candidate);
+            if (file_exists($candidatePath)) {
+                $logoData = base64_encode(file_get_contents($candidatePath));
+                $extension = pathinfo($candidatePath, PATHINFO_EXTENSION) ?: 'png';
+                $logoSrc = 'data:image/' . strtolower($extension) . ';base64,' . $logoData;
+                break;
+            }
+        }
+        $businessName = $branding['business_name'] ?? ($branding['crm_name'] ?? config('app.name'));
+    @endphp
 
-        @if($logoSrc)
-            <img src="{{ $logoSrc }}" alt="{{ $businessName }} Logo" style="max-width: 300px; height: auto;">
-        @endif
-
-        <div style="margin-top: 15px; font-size: 14px;">
-            <div style="font-size: 20px; font-weight: bold;">{{ $businessName }}</div>
-            @if(!empty($branding['business_legal_name']))
-                <div>{{ $branding['business_legal_name'] }}</div>
-            @endif
-            @if(!empty($branding['business_address_line1']))
-                <div>{{ $branding['business_address_line1'] }}</div>
-            @endif
-            @if(!empty($branding['business_address_line2']))
-                <div>{{ $branding['business_address_line2'] }}</div>
-            @endif
-            @if(!empty($branding['business_city']) || !empty($branding['business_state']) || !empty($branding['business_postal_code']))
-                <div>
-                    {{ $branding['business_city'] ?? '' }}
-                    @if(!empty($branding['business_state']))
-                        {{ !empty($branding['business_city']) ? ', ' : '' }}{{ $branding['business_state'] }}
+    <table width="100%" class="header" cellpadding="0" cellspacing="0">
+        <tbody>
+            <tr>
+                <td width="45%" valign="top">
+                    @if($logoSrc)
+                        <img src="{{ $logoSrc }}" alt="{{ $businessName }} Logo" style="max-width: 260px; height: auto;">
                     @endif
-                    @if(!empty($branding['business_postal_code']))
-                        {{ (!empty($branding['business_city']) || !empty($branding['business_state'])) ? ' ' : '' }}{{ $branding['business_postal_code'] }}
+                </td>
+                <td width="55%" class="header-details">
+                    @if(!empty($branding['business_legal_name']))
+                        <div class="business-name">{{ $branding['business_legal_name'] }}</div>
+                    @else
+                        <div class="business-name">{{ $businessName }}</div>
                     @endif
-                </div>
-            @endif
-            @if(!empty($branding['business_country']))
-                <div>{{ $branding['business_country'] }}</div>
-            @endif
-            @if(!empty($branding['business_phone']) || !empty($branding['business_email']) || !empty($branding['business_website']))
-                <div style="margin-top: 8px;">
+                    @if(!empty($branding['business_address_line1']))
+                        <div>{{ $branding['business_address_line1'] }}</div>
+                    @endif
+                    @if(!empty($branding['business_address_line2']))
+                        <div>{{ $branding['business_address_line2'] }}</div>
+                    @endif
+                    @if(!empty($branding['business_city']) || !empty($branding['business_state']) || !empty($branding['business_postal_code']))
+                        <div>
+                            {{ $branding['business_city'] ?? '' }}
+                            @if(!empty($branding['business_state']))
+                                {{ !empty($branding['business_city']) ? ', ' : '' }}{{ $branding['business_state'] }}
+                            @endif
+                            @if(!empty($branding['business_postal_code']))
+                                {{ (!empty($branding['business_city']) || !empty($branding['business_state'])) ? ' ' : '' }}{{ $branding['business_postal_code'] }}
+                            @endif
+                        </div>
+                    @endif
+                    @if(!empty($branding['business_country']))
+                        <div>{{ $branding['business_country'] }}</div>
+                    @endif
                     @if(!empty($branding['business_phone']))
-                        <span>Phone: {{ $branding['business_phone'] }}</span>
-                    @endif
-                    @if(!empty($branding['business_email']))
-                        <span style="margin-left: 10px;">Email: {{ $branding['business_email'] }}</span>
+                        <div>Phone: {{ $branding['business_phone'] }}</div>
                     @endif
                     @if(!empty($branding['business_website']))
-                        <span style="margin-left: 10px;">Web: {{ $branding['business_website'] }}</span>
+                        <div>Web: {{ $branding['business_website'] }}</div>
                     @endif
-                </div>
-            @endif
-            @if(!empty($branding['business_tax_id']))
-                <div style="margin-top: 5px;">Tax ID: {{ $branding['business_tax_id'] }}</div>
-            @endif
-        </div>
-    </div>
+                    @if(!empty($branding['business_tax_id']))
+                        <div>Tax ID: {{ $branding['business_tax_id'] }}</div>
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
-    <div class="invoice-info">
-        <div class="invoice-details">
-            <h2>Invoice #{{ $invoice->invoice_number }}</h2>
-            <p><strong>Issue Date:</strong> {{ $invoice->issue_date->format('F j, Y') }}</p>
-            <p><strong>Due Date:</strong> {{ $invoice->due_date->format('F j, Y') }}</p>
-            @if($invoice->vehicle)
-            <p>
-                <strong>Vehicle:</strong>
-                {{ implode(' ', array_filter([$invoice->vehicle->year, $invoice->vehicle->make, $invoice->vehicle->model])) ?: ($invoice->vehicle->name ?? 'N/A') }}
-            </p>
-            @if(!empty($invoice->vehicle->vin))
-            <p><strong>VIN:</strong> {{ $invoice->vehicle->vin }}</p>
-            @endif
-            @if(!empty($invoice->vehicle->coach_number))
-            <p><strong>Coach #:</strong> {{ $invoice->vehicle->coach_number }}</p>
-            @endif
-            @elseif($invoice->yacht)
-            <p><strong>Yacht:</strong> {{ $invoice->yacht->name }}</p>
-            @if(!empty($invoice->yacht->hull_identification_number))
-            <p><strong>HIN:</strong> {{ $invoice->yacht->hull_identification_number }}</p>
-            @endif
-            @endif
-        </div>
-        <div class="customer-details">
-            <h3>Bill To:</h3>
-            <p><strong>{{ $invoice->customer->name }}</strong></p>
-            @if(!empty($invoice->customer->billing_address))
-            <p>{{ $invoice->customer->billing_address }}</p>
-            @endif
-            @if(!empty($invoice->customer->billing_city) || !empty($invoice->customer->billing_state) || !empty($invoice->customer->billing_zip))
-            <p>
-                {{ $invoice->customer->billing_city ?? '' }}
-                @if(!empty($invoice->customer->billing_state))
-                    {{ !empty($invoice->customer->billing_city) ? ', ' : '' }}{{ $invoice->customer->billing_state }}
-                @endif
-                @if(!empty($invoice->customer->billing_zip))
-                    {{ (!empty($invoice->customer->billing_city) || !empty($invoice->customer->billing_state)) ? ' ' : '' }}{{ $invoice->customer->billing_zip }}
-                @endif
-            </p>
-            @endif
-            @if($invoice->customer->email)
-            <p>{{ $invoice->customer->email }}</p>
-            @endif
-            @if($invoice->customer->phone)
-            <p>{{ $invoice->customer->phone }}</p>
-            @endif
-        </div>
-    </div>
+    @php
+        $customer = $invoice->customer;
+        $billAddress = $customer->billing_address ?: $customer->address;
+        $billCity = $customer->billing_city ?: $customer->city;
+        $billState = $customer->billing_state ?: $customer->state;
+        $billZip = $customer->billing_zip ?: $customer->zip;
+        $billCountry = $customer->billing_country ?: $customer->country;
+    @endphp
+
+    <table width="100%" class="invoice-info" cellpadding="0" cellspacing="0">
+        <tbody>
+            <tr>
+                <td width="55%" valign="top">
+                    <h3>Bill To:</h3>
+                    <p><strong>{{ $customer->name }}</strong></p>
+                    @if(!empty($billAddress))
+                    <p>{{ $billAddress }}</p>
+                    @endif
+                    @if(!empty($billCity) || !empty($billState) || !empty($billZip))
+                    <p>
+                        {{ $billCity ?? '' }}
+                        @if(!empty($billState))
+                            {{ !empty($billCity) ? ', ' : '' }}{{ $billState }}
+                        @endif
+                        @if(!empty($billZip))
+                            {{ (!empty($billCity) || !empty($billState)) ? ' ' : '' }}{{ $billZip }}
+                        @endif
+                    </p>
+                    @endif
+                    @if(!empty($billCountry))
+                    <p>{{ $billCountry }}</p>
+                    @endif
+                    @if($customer->email)
+                    <p>{{ $customer->email }}</p>
+                    @endif
+                    @if($customer->phone)
+                    <p>{{ $customer->phone }}</p>
+                    @endif
+                </td>
+                <td width="45%" valign="top" align="right">
+                    <h2>Invoice #{{ $invoice->invoice_number }}</h2>
+                    <p><strong>Issue Date:</strong> {{ $invoice->issue_date->format('F j, Y') }}</p>
+                    <p><strong>Due Date:</strong> {{ $invoice->due_date->format('F j, Y') }}</p>
+                    @if($invoice->vehicle)
+                    <p>
+                        <strong>Vehicle:</strong>
+                        {{ implode(' ', array_filter([$invoice->vehicle->year, $invoice->vehicle->make, $invoice->vehicle->model])) ?: ($invoice->vehicle->name ?? 'N/A') }}
+                    </p>
+                    @if(!empty($invoice->vehicle->vin))
+                    <p><strong>VIN:</strong> {{ $invoice->vehicle->vin }}</p>
+                    @endif
+                    @if(!empty($invoice->vehicle->coach_number))
+                    <p><strong>Coach #:</strong> {{ $invoice->vehicle->coach_number }}</p>
+                    @endif
+                    @elseif($invoice->yacht)
+                    <p><strong>Yacht:</strong> {{ $invoice->yacht->name }}</p>
+                    @if(!empty($invoice->yacht->hull_identification_number))
+                    <p><strong>HIN:</strong> {{ $invoice->yacht->hull_identification_number }}</p>
+                    @endif
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
     <table>
         <thead>
@@ -237,12 +256,17 @@
         </table>
     </div>
 
-    @if($invoice->notes)
     <div style="margin-top: 30px;">
         <h3>Notes:</h3>
-        <p>{{ $invoice->notes }}</p>
+        <p>Thank you for your business!</p>
+        <p>
+            If you haven't already done so, <a href="https://crm.captainellenbogen.com/frontend/register" target="_blank">Register</a>
+            at https://crm.captainellenbogen.com/frontend/register for paperless billing, account management, and convenient access to service records.
+        </p>
+        @if($invoice->notes)
+            <p style="margin-top: 10px;">{{ $invoice->notes }}</p>
+        @endif
     </div>
-    @endif
 </body>
 </html>
 

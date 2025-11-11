@@ -71,6 +71,8 @@ class PartController extends Controller
             'min_stock_level' => ['nullable', 'integer', 'min:0'],
             'location' => ['nullable', 'string', 'max:255'],
             'vendor_part_numbers' => ['nullable', 'string'],
+            'vendor_part_number' => ['nullable', 'string', 'max:255'],
+            'manufacturer_part_number' => ['nullable', 'string', 'max:255'],
         ]);
 
         if ($validator->fails()) {
@@ -113,6 +115,8 @@ class PartController extends Controller
             'min_stock_level' => ['nullable', 'integer', 'min:0'],
             'location' => ['nullable', 'string', 'max:255'],
             'vendor_part_numbers' => ['nullable', 'string'],
+            'vendor_part_number' => ['nullable', 'string', 'max:255'],
+            'manufacturer_part_number' => ['nullable', 'string', 'max:255'],
         ]);
 
         if ($validator->fails()) {

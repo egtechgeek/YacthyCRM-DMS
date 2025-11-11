@@ -87,10 +87,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (data) => {
     try {
       const response = await authService.register(data)
-      setToken(response.token)
-      setUser(response.user)
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user))
       return response
     } catch (error) {
       throw error

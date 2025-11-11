@@ -21,6 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'status',
         'email_verified_at',
     ];
 
@@ -49,7 +50,7 @@ class User extends Authenticatable
      *
      * @var array
      */
-    protected $appends = ['mfa_enabled'];
+    protected $appends = ['mfa_enabled', 'permissions'];
 
     /**
      * Check if user has a specific role
@@ -129,6 +130,14 @@ class User extends Authenticatable
     public function getMfaEnabledAttribute(): bool
     {
         return $this->mfaSetting && $this->mfaSetting->mfa_enabled;
+    }
+
+    /**
+     * Get granted permissions for this user's role
+     */
+    public function getPermissionsAttribute(): array
+    {
+        return RolePermission::getRolePermissions($this->role);
     }
 }
 

@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\Customer;
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
+use App\Models\RolePermission;
 use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -26,7 +27,7 @@ class EmailController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isStaff()) {
+        if (!RolePermission::hasPermission($user->role, 'email_invites', 'send')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
