@@ -12,8 +12,13 @@ fi
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly GITHUB_OWNER="egtechgeek"
 readonly GITHUB_REPO="YacthyCRM-DMS"
+readonly INSTALL_ROOT_TARGET="/opt/YacthyCRM-DMS"
 TEMP_WORKDIR=""
 SOURCE_ROOT=""
+MODE=""
+declare -a NEW_MIGRATIONS=()
+BACKEND_ENV_FILE=""
+MIGRATIONS_REQUIRED=false
 
 cleanup() {
   if [[ -n "${TEMP_WORKDIR}" && -d "${TEMP_WORKDIR}" ]]; then
@@ -26,6 +31,29 @@ trap cleanup EXIT
 LOG_INFO() { printf "\033[1;32m[INFO]\033[0m %s\n" "$*"; }
 LOG_WARN() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
 LOG_ERROR() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"; }
+
+select_operation_mode() {
+  LOG_INFO "Select operation mode:"
+  echo "  1) New Installation"
+  echo "  2) Upgrade Existing Installation"
+  while true; do
+    read -rp "Enter choice [1-2]: " choice
+    case "${choice}" in
+      1)
+        MODE="install"
+        break
+        ;;
+      2)
+        MODE="upgrade"
+        break
+        ;;
+      *)
+        echo "Invalid selection. Please choose 1 or 2."
+        ;;
+    esac
+  done
+  LOG_INFO "Mode selected: ${MODE^}"
+}
 
 get_latest_release_url() {
   local api_url="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest"
@@ -254,12 +282,13 @@ print(val.replace("`", "``"))
 PY
 }
 
-collect_inputs() {
+collect_install_inputs() {
   LOG_INFO "Collecting installation parameters..."
   local default_archive_url
   default_archive_url=$(get_latest_release_url)
   CRM_SOURCE_URL=$(prompt_with_default "GitHub archive URL for YachtCRM-DMS source" "${default_archive_url}")
-  INSTALL_ROOT=$(prompt_with_default "Enter installation directory" "/opt/yachtcrm-dms")
+  INSTALL_ROOT="${INSTALL_ROOT_TARGET}"
+  LOG_INFO "Installation directory fixed to ${INSTALL_ROOT_TARGET}"
   APP_NAME=$(prompt_with_default "Application display name" "YachtCRM-DMS")
   APP_URL=$(prompt_with_default "Public application URL (no trailing slash)" "https://crm.example.com")
   SERVER_NAME=$(prompt_with_default "nginx server_name value" "$(echo "${APP_URL}" | awk -F[/:] '{print $4}')")
@@ -294,6 +323,63 @@ collect_inputs() {
   VITE_API_BASE_URL="${APP_URL%/}/backend/api"
 }
 
+collect_upgrade_inputs() {
+  LOG_INFO "Collecting upgrade parameters..."
+  local default_archive_url
+  default_archive_url=$(get_latest_release_url)
+  CRM_SOURCE_URL=$(prompt_with_default "GitHub archive URL for YachtCRM-DMS source" "${default_archive_url}")
+  INSTALL_ROOT="${INSTALL_ROOT_TARGET}"
+  LOG_INFO "Upgrade will target ${INSTALL_ROOT_TARGET}"
+
+  if [[ ! -d "${INSTALL_ROOT}/backend" || ! -d "${INSTALL_ROOT}/frontend" ]]; then
+    LOG_ERROR "The provided installation directory does not look like a YachtCRM-DMS deployment."
+    exit 1
+  fi
+
+  BACKEND_ENV_FILE="${INSTALL_ROOT}/backend/.env"
+  if [[ ! -f "${BACKEND_ENV_FILE}" ]]; then
+    LOG_ERROR "Missing backend .env file at ${BACKEND_ENV_FILE}. Aborting upgrade."
+    exit 1
+  fi
+
+  VITE_API_BASE_URL="$(grep -E '^VITE_API_BASE_URL=' "${INSTALL_ROOT}/frontend/.env" 2>/dev/null | cut -d'=' -f2- || true)"
+}
+
+verify_prerequisites() {
+  LOG_INFO "Verifying existing prerequisites..."
+  local required_commands=(
+    "php:php8.3-cli"
+    "composer:composer"
+    "node:nodejs"
+    "npm:nodejs"
+    "mysql:mariadb-server"
+    "redis-cli:redis-tools"
+    "nginx:nginx"
+    "jq:jq"
+    "tar:tar"
+    "curl:curl"
+  )
+
+  for entry in "${required_commands[@]}"; do
+    IFS=":" read -r cmd pkg <<<"${entry}"
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+      LOG_ERROR "Missing prerequisite '${cmd}'. Please install package '${pkg}' and retry."
+      exit 1
+    fi
+  done
+
+  if ! php -v 2>/dev/null | grep -q "PHP 8.3"; then
+    LOG_ERROR "Detected PHP version is not 8.3+. Please upgrade PHP before proceeding."
+    exit 1
+  fi
+
+  if ! node --version 2>/dev/null | grep -q "^v22\\."; then
+    LOG_ERROR "Detected Node.js version is not v22. Please upgrade Node.js before proceeding."
+    exit 1
+  fi
+
+  LOG_INFO "All required prerequisites detected."
+}
 ensure_directory() {
   local path="$1"
   mkdir -p "${path}"
@@ -342,6 +428,51 @@ download_crm_source() {
   LOG_INFO "Source downloaded and extracted to ${SOURCE_ROOT}"
 }
 
+detect_new_migrations() {
+  NEW_MIGRATIONS=()
+  MIGRATIONS_REQUIRED=false
+
+  local existing_dir="${INSTALL_ROOT}/backend/database/migrations"
+  local source_dir="${SOURCE_ROOT}/backend/database/migrations"
+
+  if [[ ! -d "${existing_dir}" ]]; then
+    LOG_WARN "Existing migrations directory missing; will run migrations after upgrade."
+    MIGRATIONS_REQUIRED=true
+    return
+  fi
+
+  if [[ ! -d "${source_dir}" ]]; then
+    LOG_WARN "Source release missing migrations directory; skipping migration comparison."
+    return
+  fi
+
+  mapfile -t existing_files < <(find "${existing_dir}" -maxdepth 1 -type f -name "*.php" -printf '%f\n' | LC_ALL=C sort)
+  mapfile -t source_files < <(find "${source_dir}" -maxdepth 1 -type f -name "*.php" -printf '%f\n' | LC_ALL=C sort)
+
+  if [[ ${#source_files[@]} -eq 0 ]]; then
+    LOG_WARN "Source release contains no migrations; skipping migration comparison."
+    return
+  fi
+
+  if [[ ${#existing_files[@]} -eq 0 ]]; then
+    LOG_INFO "No existing migration files found; migrations will be applied."
+    NEW_MIGRATIONS=("${source_files[@]}")
+    MIGRATIONS_REQUIRED=true
+    return
+  fi
+
+  local diff_output
+  diff_output=$(comm -13 <(printf '%s\n' "${existing_files[@]}") <(printf '%s\n' "${source_files[@]}") || true)
+
+  if [[ -n "${diff_output}" ]]; then
+    mapfile -t NEW_MIGRATIONS <<<"${diff_output}"
+    MIGRATIONS_REQUIRED=true
+    LOG_INFO "Detected ${#NEW_MIGRATIONS[@]} new migration(s) to apply."
+  else
+    LOG_INFO "No new migrations detected."
+  fi
+}
+
 set_permissions() {
   LOG_INFO "Setting directory permissions..."
   chown -R www-data:www-data "${INSTALL_ROOT}/backend/storage" "${INSTALL_ROOT}/backend/bootstrap/cache"
@@ -349,6 +480,21 @@ set_permissions() {
   find "${INSTALL_ROOT}/backend/bootstrap/cache" -type d -exec chmod 775 {} +
   find "${INSTALL_ROOT}/backend/storage" -type f -exec chmod 664 {} +
   find "${INSTALL_ROOT}/backend/bootstrap/cache" -type f -exec chmod 664 {} +
+}
+
+sync_release_to_install() {
+  LOG_INFO "Syncing release files into ${INSTALL_ROOT}..."
+  ensure_directory "${INSTALL_ROOT}"
+  rsync -a --delete \
+    --exclude 'backend/.env' \
+    --exclude 'backend/storage/' \
+    --exclude 'backend/bootstrap/cache/' \
+    --exclude 'frontend/.env' \
+    --exclude 'frontend/node_modules/' \
+    --exclude 'frontend/dist/' \
+    "${SOURCE_ROOT}/" "${INSTALL_ROOT}/"
+
+  LOG_INFO "Release sync complete."
 }
 
 set_env_var() {
@@ -390,6 +536,34 @@ for idx, line in enumerate(lines):
 else:
     lines.append(encoded)
     pathlib.Path(path).write_text("\n".join(lines) + "\n")
+PY
+}
+
+read_env_value() {
+  local env_file="$1"
+  local key="$2"
+  python3 - "$env_file" "$key" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+key = sys.argv[2]
+if not path.exists():
+    sys.exit(0)
+
+for raw in path.read_text().splitlines():
+    if not raw or raw.lstrip().startswith("#"):
+        continue
+    if "=" not in raw:
+        continue
+    k, v = raw.split("=", 1)
+    if k.strip() != key:
+        continue
+    v = v.strip()
+    if v and ((v[0] == v[-1]) and v[0] in {'"', "'"}):
+        v = v[1:-1]
+    print(v)
+    break
 PY
 }
 
@@ -439,6 +613,24 @@ configure_frontend_env() {
   cat > "${env_file}" <<EOF
 VITE_API_BASE_URL=${VITE_API_BASE_URL}
 EOF
+}
+
+load_existing_env_values() {
+  DB_HOST=$(read_env_value "${BACKEND_ENV_FILE}" "DB_HOST")
+  DB_PORT=$(read_env_value "${BACKEND_ENV_FILE}" "DB_PORT")
+  DB_NAME=$(read_env_value "${BACKEND_ENV_FILE}" "DB_DATABASE")
+  DB_USER=$(read_env_value "${BACKEND_ENV_FILE}" "DB_USERNAME")
+  DB_PASSWORD=$(read_env_value "${BACKEND_ENV_FILE}" "DB_PASSWORD")
+  CACHE_DRIVER=$(read_env_value "${BACKEND_ENV_FILE}" "CACHE_DRIVER")
+  SESSION_DRIVER=$(read_env_value "${BACKEND_ENV_FILE}" "SESSION_DRIVER")
+  QUEUE_CONNECTION=$(read_env_value "${BACKEND_ENV_FILE}" "QUEUE_CONNECTION")
+  REDIS_HOST=$(read_env_value "${BACKEND_ENV_FILE}" "REDIS_HOST")
+  REDIS_PASSWORD_INPUT=$(read_env_value "${BACKEND_ENV_FILE}" "REDIS_PASSWORD")
+  REDIS_PORT=$(read_env_value "${BACKEND_ENV_FILE}" "REDIS_PORT")
+
+  DB_PORT=${DB_PORT:-3306}
+  REDIS_HOST=${REDIS_HOST:-127.0.0.1}
+  REDIS_PORT=${REDIS_PORT:-6379}
 }
 
 provision_database() {
@@ -492,7 +684,7 @@ import_schema_and_seed() {
   popd >/dev/null
 }
 
-install_backend_dependencies() {
+install_backend_dependencies_install() {
   local backend_dir="${INSTALL_ROOT}/backend"
   LOG_INFO "Installing backend Composer dependencies..."
   pushd "${backend_dir}" >/dev/null
@@ -517,6 +709,81 @@ install_frontend_dependencies() {
   fi
   npm run build
   popd >/dev/null
+}
+
+install_backend_dependencies_upgrade() {
+  local backend_dir="${INSTALL_ROOT}/backend"
+  LOG_INFO "Updating backend Composer dependencies..."
+  pushd "${backend_dir}" >/dev/null
+  export COMPOSER_ALLOW_SUPERUSER=1
+  composer install --no-dev --prefer-dist
+  php artisan optimize:clear
+  php artisan config:cache
+  php artisan route:cache
+  php artisan storage:link
+  popd >/dev/null
+}
+
+apply_migrations_if_needed() {
+  if [[ "${MIGRATIONS_REQUIRED}" != true ]]; then
+    LOG_INFO "No pending migrations detected; skipping migrate step."
+    return
+  fi
+
+  local backend_dir="${INSTALL_ROOT}/backend"
+  if [[ ${#NEW_MIGRATIONS[@]} -gt 0 ]]; then
+    LOG_INFO "Migrations to be applied:"
+    printf '  - %s\n' "${NEW_MIGRATIONS[@]}"
+  fi
+
+  LOG_INFO "Running database migrations..."
+  pushd "${backend_dir}" >/dev/null
+  php artisan migrate --force
+  popd >/dev/null
+}
+
+run_install_flow() {
+  LOG_INFO "Starting prerequisite installation..."
+
+  install_build_tools
+  install_php_stack
+  install_composer
+  install_node
+  install_redis
+  install_mariadb
+  install_nginx
+  LOG_INFO "Prerequisites installed successfully."
+
+  collect_install_inputs
+  download_crm_source
+  copy_crm_source
+  set_permissions
+  configure_backend_env
+  configure_frontend_env
+  install_backend_dependencies_install
+  install_frontend_dependencies
+  provision_database
+  import_schema_and_seed
+  create_admin_user
+  configure_nginx
+  verify_services
+  print_summary_install
+}
+
+run_upgrade_flow() {
+  LOG_INFO "Verifying existing prerequisites..."
+  verify_prerequisites
+  collect_upgrade_inputs
+  load_existing_env_values
+  download_crm_source
+  detect_new_migrations
+  sync_release_to_install
+  install_backend_dependencies_upgrade
+  install_frontend_dependencies
+  apply_migrations_if_needed
+  set_permissions
+  verify_services
+  print_summary_upgrade
 }
 
 create_admin_user() {
@@ -601,7 +868,11 @@ verify_services() {
   done
 
   if command -v mysql >/dev/null 2>&1; then
-    if mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "SELECT 1" >/dev/null 2>&1; then
+    local mysql_cmd=(mysql -u "${DB_USER}" -h "${DB_HOST}" -P "${DB_PORT}" -e "SELECT 1")
+    if [[ -n "${DB_PASSWORD}" ]]; then
+      mysql_cmd+=(-p"${DB_PASSWORD}")
+    fi
+    if "${mysql_cmd[@]}" >/dev/null 2>&1; then
       LOG_INFO "Verified database connection for user ${DB_USER}."
     else
       LOG_WARN "Unable to verify database credentials for ${DB_USER}. Please test manually."
@@ -625,7 +896,7 @@ verify_services() {
   fi
 }
 
-print_summary() {
+print_summary_install() {
   cat <<EOF
 
 ========================================
@@ -655,33 +926,46 @@ Thank you for choosing YachtCRM-DMS!
 EOF
 }
 
+print_summary_upgrade() {
+  local env_app_url env_db_host env_db_name env_db_user
+  env_app_url=$(read_env_value "${BACKEND_ENV_FILE}" "APP_URL")
+  env_db_host=$(read_env_value "${BACKEND_ENV_FILE}" "DB_HOST")
+  env_db_name=$(read_env_value "${BACKEND_ENV_FILE}" "DB_DATABASE")
+  env_db_user=$(read_env_value "${BACKEND_ENV_FILE}" "DB_USERNAME")
+
+  cat <<EOF
+
+========================================
+YachtCRM-DMS Upgrade Complete
+========================================
+App URL:          ${env_app_url%/}/frontend/
+
+Database:
+  Host:           ${env_db_host}
+  Database:       ${env_db_name}
+  User:           ${env_db_user}
+
+Migrations Applied:
+$(if [[ ${#NEW_MIGRATIONS[@]} -gt 0 ]]; then printf '  - %s\n' "${NEW_MIGRATIONS[@]}"; else echo "  - None detected"; fi)
+
+Next Steps:
+  - Confirm application functionality and branding assets.
+  - Review release notes for manual steps.
+  - Restart background workers if applicable: php artisan queue:restart
+
+Thank you for keeping YachtCRM-DMS up to date!
+EOF
+}
+
 main() {
   LOG_INFO "YachtCRM-DMS Linux Installer v${SCRIPT_VERSION}"
-  LOG_INFO "Starting prerequisite installation..."
+  select_operation_mode
 
-  install_build_tools
-  install_php_stack
-  install_composer
-  install_node
-  install_redis
-  install_mariadb
-  install_nginx
-  LOG_INFO "Prerequisites installed successfully."
-
-  collect_inputs
-  download_crm_source
-  copy_crm_source
-  set_permissions
-  configure_backend_env
-  configure_frontend_env
-  install_backend_dependencies
-  install_frontend_dependencies
-  provision_database
-  import_schema_and_seed
-  create_admin_user
-  configure_nginx
-  verify_services
-  print_summary
+  if [[ "${MODE}" == "install" ]]; then
+    run_install_flow
+  else
+    run_upgrade_flow
+  fi
 }
 
 main "$@"
