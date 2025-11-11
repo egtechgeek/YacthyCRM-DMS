@@ -137,12 +137,16 @@ run_apt_update() {
 }
 
 add_php_repo_if_needed() {
-  if ! apt-cache policy | grep -q "ondrej/php"; then
-    LOG_INFO "Adding Ondřej Surý PHP repository..."
-    run_apt_update
-    apt-get install -y software-properties-common ca-certificates apt-transport-https lsb-release
-    add-apt-repository -y ppa:ondrej/php
+  if grep -R "packages.sury.org/php" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | head -n1 >/dev/null; then
+    LOG_INFO "Ondřej Surý PHP repository already configured."
+    return
   fi
+
+  LOG_INFO "Adding Ondřej Surý PHP repository for Debian..."
+  run_apt_update
+
+  curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/php.gpg
+  echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php-sury.list
 }
 
 install_php_stack() {
@@ -262,7 +266,7 @@ install_nginx() {
 install_build_tools() {
   run_apt_update
   LOG_INFO "Installing supporting build tools..."
-  apt-get install -y git unzip curl rsync acl jq python3 tar
+  apt-get install -y git unzip curl rsync acl jq python3 tar ca-certificates apt-transport-https gnupg lsb-release
 }
 
 escape_for_single_quotes() {
@@ -959,6 +963,12 @@ EOF
 
 main() {
   LOG_INFO "YachtCRM-DMS Linux Installer v${SCRIPT_VERSION}"
+  LOG_INFO "Target platform: Debian-based distributions (optimized for Debian Bookworm)."
+  if command -v lsb_release >/dev/null 2>&1; then
+    LOG_INFO "Detected host: $(lsb_release -sd)"
+  elif [[ -f /etc/os-release ]]; then
+    LOG_INFO "Detected host: $(. /etc/os-release && echo "${PRETTY_NAME}")"
+  fi
   select_operation_mode
 
   if [[ "${MODE}" == "install" ]]; then
