@@ -839,6 +839,9 @@ run_install_flow() {
 run_upgrade_flow() {
   LOG_INFO "Verifying existing prerequisites..."
   verify_prerequisites
+  install_php_stack
+  tune_php_ini
+  install_phpmyadmin
   collect_upgrade_inputs
   load_existing_env_values
   download_crm_source
@@ -848,6 +851,8 @@ run_upgrade_flow() {
   install_frontend_dependencies
   apply_migrations_if_needed
   set_permissions
+  install_certbot
+  configure_nginx
   verify_services
   print_summary_upgrade
 }
