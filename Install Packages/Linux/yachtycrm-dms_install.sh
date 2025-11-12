@@ -33,11 +33,13 @@ LOG_WARN() { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
 LOG_ERROR() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; }
 
 select_operation_mode() {
-  LOG_INFO "Select operation mode:"
+  LOG_INFO "Select operation:"
   echo "  1) New Installation"
   echo "  2) Upgrade Existing Installation"
+  echo "  3) Configure SSL with Certbot"
+  echo "  4) Clean Uninstall (Danger, be 100% sure you want to do this)"
   while true; do
-    read -rp "Enter choice [1-2]: " choice
+    read -rp "Enter choice [1-4]: " choice
     case "${choice}" in
       1)
         MODE="install"
@@ -47,8 +49,16 @@ select_operation_mode() {
         MODE="upgrade"
         break
         ;;
+      3)
+        MODE="certbot"
+        break
+        ;;
+      4)
+        MODE="uninstall"
+        break
+        ;;
       *)
-        echo "Invalid selection. Please choose 1 or 2."
+        echo "Invalid selection. Please choose 1, 2, 3, or 4."
         ;;
     esac
   done
@@ -304,6 +314,74 @@ install_certbot() {
   LOG_INFO "Installing Certbot (Let's Encrypt client)..."
   run_apt_update
   apt-get install -y certbot python3-certbot-nginx
+}
+
+run_certbot_flow() {
+  verify_prerequisites
+  install_certbot
+
+  local domain=""
+  read -rp "Enter the primary domain (e.g., crm.example.com): " domain
+  if [[ -z "${domain}" ]]; then
+    LOG_ERROR "Domain cannot be empty. Aborting Certbot run."
+    exit 1
+  fi
+
+  local email=""
+  read -rp "Enter contact email for Let's Encrypt notifications: " email
+  if [[ -z "${email}" ]]; then
+    LOG_WARN "No email provided; Certbot will register without one."
+  fi
+
+  LOG_INFO "Running Certbot for ${domain}..."
+  if [[ -n "${email}" ]]; then
+    certbot --nginx -d "${domain}" --agree-tos -m "${email}" --non-interactive || {
+      LOG_ERROR "Certbot failed. Review the error above, resolve, and retry."
+      exit 1
+    }
+  else
+    certbot --nginx -d "${domain}" --agree-tos --register-unsafely-without-email --non-interactive || {
+      LOG_ERROR "Certbot failed. Review the error above, resolve, and retry."
+      exit 1
+    }
+  fi
+
+  LOG_INFO "SSL certificate obtained. Reloading nginx..."
+  systemctl reload nginx
+  LOG_INFO "Certbot setup complete."
+}
+
+run_uninstall_flow() {
+  LOG_WARN "This will remove YachtCRM-DMS, its services, and associated data from ${INSTALL_ROOT_TARGET}."
+  read -rp "Type 'UNINSTALL' to confirm: " confirmation
+  if [[ "${confirmation}" != "UNINSTALL" ]]; then
+    LOG_INFO "Uninstall cancelled."
+    exit 0
+  fi
+
+  LOG_INFO "Stopping services..."
+  systemctl stop nginx || true
+  systemctl stop mariadb || true
+  systemctl stop php8.3-fpm || true
+  systemctl stop redis-server || true
+
+  LOG_INFO "Removing nginx site..."
+  rm -f /etc/nginx/sites-enabled/yachtcrm-dms.conf /etc/nginx/sites-available/yachtcrm-dms.conf
+  systemctl reload nginx || true
+
+  LOG_INFO "Removing application directory..."
+  rm -rf "${INSTALL_ROOT_TARGET}"
+
+  LOG_INFO "Uninstalling packages..."
+  apt-get remove -y nginx mariadb-server php8.3\* redis-server nodejs phpmyadmin certbot python3-certbot-nginx || true
+  apt-get autoremove -y
+
+  LOG_WARN "Manual cleanup recommended:"
+  LOG_WARN "  - Check MariaDB for residual databases/users."
+  LOG_WARN "  - Remove /usr/share/phpmyadmin if still present."
+  LOG_WARN "  - Review SSL certificates in /etc/letsencrypt if desired."
+  LOG_INFO "Uninstall complete."
+  exit 0
 }
 
 install_nginx() {
@@ -626,6 +704,19 @@ for raw in path.read_text().splitlines():
 PY
 }
 
+extract_hostname() {
+  python3 - "$1" <<'PY'
+import sys
+from urllib.parse import urlparse
+
+url = sys.argv[1]
+if not url:
+    sys.exit(0)
+parsed = urlparse(url if '://' in url else f'https://{url}')
+print(parsed.hostname or "")
+PY
+}
+
 configure_backend_env() {
   local backend_dir="${INSTALL_ROOT}/backend"
   local env_file="${backend_dir}/.env"
@@ -817,7 +908,6 @@ run_install_flow() {
   install_mariadb
   install_phpmyadmin
   install_nginx
-  install_certbot
   LOG_INFO "Prerequisites installed successfully."
 
   collect_install_inputs
@@ -851,7 +941,6 @@ run_upgrade_flow() {
   install_frontend_dependencies
   apply_migrations_if_needed
   set_permissions
-  install_certbot
   configure_nginx
   verify_services
   print_summary_upgrade
@@ -884,12 +973,26 @@ configure_nginx() {
   local backend_public="${INSTALL_ROOT}/backend/public"
   local frontend_dist="${INSTALL_ROOT}/frontend/dist"
   local server_conf="/etc/nginx/sites-available/yachtcrm-dms.conf"
+  local server_name="${SERVER_NAME:-}"
+
+  if [[ -z "${server_name}" ]]; then
+    local env_app_url=""
+    if [[ -n "${BACKEND_ENV_FILE}" && -f "${BACKEND_ENV_FILE}" ]]; then
+      env_app_url=$(read_env_value "${BACKEND_ENV_FILE}" "APP_URL")
+    fi
+    server_name=$(extract_hostname "${env_app_url}")
+  fi
+
+  if [[ -z "${server_name}" ]]; then
+    server_name="crm.example.com"
+    LOG_WARN "SERVER_NAME not provided; defaulting nginx server_name to ${server_name}"
+  fi
 
   LOG_INFO "Configuring nginx virtual host..."
   cat > "${server_conf}" <<EOF
 server {
     listen 80;
-    server_name ${SERVER_NAME};
+    server_name ${server_name};
 
     root ${backend_public};
     index index.php index.html;
@@ -1068,7 +1171,17 @@ main() {
   if [[ "${MODE}" == "install" ]]; then
     run_install_flow
   else
-    run_upgrade_flow
+    case "${MODE}" in
+      "upgrade")
+        run_upgrade_flow
+        ;;
+      "certbot")
+        run_certbot_flow
+        ;;
+      "uninstall")
+        run_uninstall_flow
+        ;;
+    esac
   fi
 }
 
