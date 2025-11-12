@@ -376,7 +376,8 @@ run_hostname_flow() {
   fi
 
   local sanitized_url="${custom_url%/}"
-  set_env_var "${BACKEND_ENV_FILE}" "APP_URL" "${sanitized_url}"
+  APP_URL="${sanitized_url}"
+  set_env_var "${BACKEND_ENV_FILE}" "APP_URL" "${APP_URL}"
 
   configure_frontend_env
   configure_nginx
