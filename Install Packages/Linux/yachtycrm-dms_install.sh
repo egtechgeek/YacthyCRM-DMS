@@ -37,9 +37,10 @@ select_operation_mode() {
   echo "  1) New Installation"
   echo "  2) Upgrade Existing Installation"
   echo "  3) Configure SSL with Certbot"
-  echo "  4) Clean Uninstall (Danger, be 100% sure you want to do this)"
+  echo "  4) Local / Testing / Dev Configuration (No Certbot, No FQDN. Run after install/upgrade.)"
+  echo "  5) Complete Uninstall (removes services, files, and packages)"
   while true; do
-    read -rp "Enter choice [1-4]: " choice
+    read -rp "Enter choice [1-5]: " choice
     case "${choice}" in
       1)
         MODE="install"
@@ -54,11 +55,15 @@ select_operation_mode() {
         break
         ;;
       4)
+        MODE="hostname"
+        break
+        ;;
+      5)
         MODE="uninstall"
         break
         ;;
       *)
-        echo "Invalid selection. Please choose 1, 2, 3, or 4."
+        echo "Invalid selection. Please choose 1, 2, 3, 4, or 5."
         ;;
     esac
   done
@@ -349,6 +354,33 @@ run_certbot_flow() {
   LOG_INFO "SSL certificate obtained. Reloading nginx..."
   systemctl reload nginx
   LOG_INFO "Certbot setup complete."
+}
+
+run_hostname_flow() {
+  LOG_INFO "Updating APP_URL / frontend hostname for local testing."
+  read -rp "Enter the base URL you plan to use (default: http://localhost): " custom_url
+  if [[ -z "${custom_url}" ]]; then
+    custom_url="http://localhost"
+  fi
+  if [[ -z "${custom_url}" ]]; then
+    LOG_ERROR "URL cannot be empty."
+    exit 1
+  fi
+
+  INSTALL_ROOT="${INSTALL_ROOT_TARGET}"
+  BACKEND_ENV_FILE="${INSTALL_ROOT}/backend/.env"
+
+  if [[ ! -f "${BACKEND_ENV_FILE}" ]]; then
+    LOG_ERROR "Backend .env not found at ${BACKEND_ENV_FILE}. Run install/upgrade first."
+    exit 1
+  fi
+
+  local sanitized_url="${custom_url%/}"
+  set_env_var "${BACKEND_ENV_FILE}" "APP_URL" "${sanitized_url}"
+
+  configure_frontend_env
+  configure_nginx
+  LOG_INFO "Hostname updated to ${sanitized_url}. nginx reloaded."
 }
 
 run_uninstall_flow() {
@@ -996,7 +1028,8 @@ configure_nginx() {
   LOG_INFO "Configuring nginx virtual host..."
   cat > "${server_conf}" <<EOF
 server {
-    listen 80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
     server_name ${server_name};
 
     root ${backend_public};
@@ -1027,12 +1060,14 @@ server {
 
     location /frontend/ {
         alias ${frontend_dist}/;
-        try_files \$uri \$uri/ /frontend/index.html;
+        index index.html;
+        try_files \$uri \$uri/ /index.html;
     }
 
     location /phpmyadmin/ {
         alias /usr/share/phpmyadmin/;
         index index.php index.html;
+        try_files \$uri \$uri/ /index.php;
 
         location ~ ^/phpmyadmin/(.+\.php)$ {
             alias /usr/share/phpmyadmin/\$1;
@@ -1186,6 +1221,9 @@ main() {
         ;;
       "certbot")
         run_certbot_flow
+        ;;
+      "hostname")
+        run_hostname_flow
         ;;
       "uninstall")
         run_uninstall_flow
