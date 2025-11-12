@@ -1118,12 +1118,17 @@ verify_services() {
   if command -v mysql >/dev/null 2>&1; then
     local mysql_cmd=(mysql -u "${DB_USER}" -h "${DB_HOST}" -P "${DB_PORT}" -e "SELECT 1")
     if [[ -n "${DB_PASSWORD}" ]]; then
-      mysql_cmd+=(-p"${DB_PASSWORD}")
-    fi
-    if "${mysql_cmd[@]}" >/dev/null 2>&1; then
-      LOG_INFO "Verified database connection for user ${DB_USER}."
+      if MYSQL_PWD="${DB_PASSWORD}" "${mysql_cmd[@]}" >/dev/null 2>&1; then
+        LOG_INFO "Verified database connection for user ${DB_USER}."
+      else
+        LOG_WARN "Unable to verify database credentials for ${DB_USER}. Please test manually."
+      fi
     else
-      LOG_WARN "Unable to verify database credentials for ${DB_USER}. Please test manually."
+      if "${mysql_cmd[@]}" >/dev/null 2>&1; then
+        LOG_INFO "Verified database connection for user ${DB_USER}."
+      else
+        LOG_WARN "Unable to verify database credentials for ${DB_USER}. Please test manually."
+      fi
     fi
   fi
 
