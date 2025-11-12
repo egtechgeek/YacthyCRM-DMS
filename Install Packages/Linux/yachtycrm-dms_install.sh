@@ -683,8 +683,12 @@ import_schema_and_seed() {
   LOG_INFO "Running Laravel migrations..."
   pushd "${backend_dir}" >/dev/null
   php artisan migrate --force
-  LOG_INFO "Seeding database..."
-  php artisan db:seed --force
+  if [[ -f "${backend_dir}/database/seeders/DatabaseSeeder.php" ]]; then
+    LOG_INFO "Seeding database..."
+    php artisan db:seed --force
+  else
+    LOG_WARN "DatabaseSeeder not found; skipping db:seed step."
+  fi
   popd >/dev/null
 }
 
