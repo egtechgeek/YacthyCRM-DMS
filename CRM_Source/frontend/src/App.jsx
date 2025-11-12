@@ -66,7 +66,7 @@ function App() {
     const brandingName =
       branding?.crm_name?.trim() ||
       branding?.business_name?.trim() ||
-      'YachtCRM'
+      'YachtyCRM-DMS'
 
     document.title = brandingName
   }, [branding])

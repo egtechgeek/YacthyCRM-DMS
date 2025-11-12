@@ -381,7 +381,7 @@ const BrandingSettings = ({ branding, logoFiles, onBrandingChange, onLogoUpload,
             value={branding.crm_name || ''}
             onChange={(e) => onBrandingChange('crm_name', e.target.value)}
             helperText="Shown on login page and application chrome"
-            placeholder="Daves RV Center CRM & DMS"
+            placeholder="YachtyCRM-DMS"
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -391,7 +391,7 @@ const BrandingSettings = ({ branding, logoFiles, onBrandingChange, onLogoUpload,
             value={branding.business_name || ''}
             onChange={(e) => onBrandingChange('business_name', e.target.value)}
             helperText="Displayed on quotes, invoices, reports, and work orders"
-            placeholder="Daves RV Center"
+            placeholder="YachtyCRM"
           />
         </Grid>
         <Grid item xs={12} md={6}>

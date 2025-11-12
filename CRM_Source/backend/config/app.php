@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Captain Ellenbogen Yacht Management CRM'),
+    'name' => env('APP_NAME', 'YachtyCRM-DMS'),
 
     /*
     |--------------------------------------------------------------------------

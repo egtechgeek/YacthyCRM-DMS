@@ -836,6 +836,16 @@ server {
 
     client_max_body_size 64M;
 
+    location = / {
+        return 302 /frontend/;
+    }
+
+    location /assets/ {
+        alias ${frontend_dist}/assets/;
+        try_files \$uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }

@@ -13,7 +13,7 @@ class Branding
     {
         $setting = Setting::where('key', 'crm_name')->first();
 
-        $fallbackName = config('app.name', 'Daves RV Center CRM & DMS');
+        $fallbackName = config('app.name', 'YachtyCRM-DMS');
 
         return [
             'crm_name' => $setting->crm_name ?? $fallbackName,
