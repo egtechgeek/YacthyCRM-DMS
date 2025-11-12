@@ -1,0 +1,33 @@
+This debian 12 virtual machine we will use going forward for the development of the YacthyCRM-DMS application, as well as creating a deployment package for it.
+
+We'll need to start by installing the prerequisites, such as: 
+- Apache 2.4+ with mod_rewrite, mod_headers (Recommended) OR Nginx 1.18+
+-PHP 8.3 
+**Required Extensions:**
+  - OpenSSL
+  - PDO (with MySQL/MariaDB driver)
+  - Mbstring
+  - Tokenizer
+  - XML
+  - Ctype
+  - JSON
+  - BCMath
+  - Fileinfo
+  - GD or Imagick (for image manipulation)
+  - Zip
+  - Curl
+**Recommended php.ini settings:**
+```ini
+memory_limit = 256M          ; Minimum, 512M recommended
+max_execution_time = 300     ; 5 minutes
+upload_max_filesize = 20M
+post_max_size = 20M
+max_input_vars = 3000
+```
+
+- **MariaDB:** 10.6+
+- **Node.js:** 22 + (for building frontend)
+- **npm:** 10.x
+-Composer **Version:** 2.5+
+-PHPmyAdmin
+-Certbot

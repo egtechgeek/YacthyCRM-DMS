@@ -760,7 +760,8 @@ configure_backend_env() {
   fi
 
   set_env_var "${env_file}" "APP_NAME" "${APP_NAME}"
-  set_env_var "${env_file}" "APP_URL" "${APP_URL%/}"
+  set_env_var "${env_file}" "APP_URL" "${APP_URL%/}/backend"
+  set_env_var "${env_file}" "FRONTEND_URL" "${APP_URL%/}/frontend"
   set_env_var_literal "${env_file}" "APP_ENV" "production"
   set_env_var_literal "${env_file}" "APP_DEBUG" "false"
 
@@ -795,6 +796,7 @@ configure_frontend_env() {
   LOG_INFO "Configuring frontend environment file..."
   cat > "${env_file}" <<EOF
 VITE_API_BASE_URL=${APP_URL%/}/backend/api
+VITE_FRONTEND_BASE_URL=${APP_URL%/}/frontend
 EOF
 }
 
