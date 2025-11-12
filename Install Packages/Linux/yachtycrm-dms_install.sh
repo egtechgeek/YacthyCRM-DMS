@@ -761,7 +761,7 @@ configure_frontend_env() {
 
   LOG_INFO "Configuring frontend environment file..."
   cat > "${env_file}" <<EOF
-VITE_API_BASE_URL=${VITE_API_BASE_URL}
+VITE_API_BASE_URL=${APP_URL%/}/backend/api
 EOF
 }
 
@@ -908,6 +908,7 @@ run_install_flow() {
   install_mariadb
   install_phpmyadmin
   install_nginx
+  install_certbot
   LOG_INFO "Prerequisites installed successfully."
 
   collect_install_inputs
@@ -923,6 +924,8 @@ run_install_flow() {
   create_admin_user
   configure_nginx
   verify_services
+  LOG_INFO "Reloading nginx..."
+  systemctl reload nginx || LOG_WARN "nginx reload reported an issue; check logs if the site fails to respond."
   print_summary_install
 }
 
@@ -943,6 +946,8 @@ run_upgrade_flow() {
   set_permissions
   configure_nginx
   verify_services
+  LOG_INFO "Reloading nginx..."
+  systemctl reload nginx || LOG_WARN "nginx reload reported an issue; check logs if the site fails to respond."
   print_summary_upgrade
 }
 
@@ -1004,6 +1009,10 @@ server {
 
     location = / {
         return 302 /frontend/;
+    }
+
+    location = /phpmyadmin {
+        return 301 /phpmyadmin/;
     }
 
     location /assets/ {
