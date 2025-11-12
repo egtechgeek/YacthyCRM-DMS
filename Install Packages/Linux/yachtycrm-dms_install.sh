@@ -1085,6 +1085,12 @@ server {
         }
     }
 
+    location /backend/ {
+        alias ${backend_public}/;
+        index index.php index.html;
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
