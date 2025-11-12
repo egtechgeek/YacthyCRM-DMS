@@ -189,6 +189,35 @@ install_php_stack() {
   systemctl restart "php${required_version}-fpm"
 }
 
+set_php_ini_value() {
+  local ini_file="$1"
+  local key="$2"
+  local value="$3"
+
+  if grep -qE "^[; ]*${key}\s*=" "${ini_file}"; then
+    sed -i "s|^[; ]*${key}\s*=.*|${key} = ${value}|" "${ini_file}"
+  else
+    echo "${key} = ${value}" >> "${ini_file}"
+  fi
+}
+
+tune_php_ini() {
+  local php_ini="/etc/php/8.3/fpm/php.ini"
+  if [[ ! -f "${php_ini}" ]]; then
+    LOG_WARN "php.ini not found at ${php_ini}; skipping PHP tuning."
+    return
+  fi
+
+  LOG_INFO "Applying recommended php.ini settings..."
+  set_php_ini_value "${php_ini}" "memory_limit" "512M"
+  set_php_ini_value "${php_ini}" "max_execution_time" "300"
+  set_php_ini_value "${php_ini}" "upload_max_filesize" "20M"
+  set_php_ini_value "${php_ini}" "post_max_size" "20M"
+  set_php_ini_value "${php_ini}" "max_input_vars" "3000"
+
+  systemctl reload php8.3-fpm
+}
+
 install_composer() {
   if command -v composer >/dev/null 2>&1; then
     LOG_INFO "Composer already installed ($(composer --version))."
@@ -251,6 +280,32 @@ install_mariadb() {
   systemctl restart mariadb
 }
 
+install_phpmyadmin() {
+  if [[ -d /usr/share/phpmyadmin ]]; then
+    LOG_INFO "phpMyAdmin already installed."
+    return
+  fi
+
+  LOG_INFO "Installing phpMyAdmin..."
+  run_apt_update
+
+  echo "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none" | debconf-set-selections
+  echo "phpmyadmin phpmyadmin/dbconfig-install boolean false" | debconf-set-selections
+
+  apt-get install -y phpmyadmin
+}
+
+install_certbot() {
+  if command -v certbot >/dev/null 2>&1; then
+    LOG_INFO "Certbot already installed ($(certbot --version 2>/dev/null | head -n1))."
+    return
+  fi
+
+  LOG_INFO "Installing Certbot (Let's Encrypt client)..."
+  run_apt_update
+  apt-get install -y certbot python3-certbot-nginx
+}
+
 install_nginx() {
   if dpkg -s nginx >/dev/null 2>&1; then
     LOG_INFO "nginx already installed."
@@ -266,7 +321,7 @@ install_nginx() {
 install_build_tools() {
   run_apt_update
   LOG_INFO "Installing supporting build tools..."
-  apt-get install -y git unzip curl rsync acl jq python3 tar ca-certificates apt-transport-https gnupg lsb-release
+  apt-get install -y git unzip curl rsync acl jq python3 tar ca-certificates apt-transport-https gnupg lsb-release software-properties-common
 }
 
 escape_for_single_quotes() {
@@ -755,11 +810,14 @@ run_install_flow() {
 
   install_build_tools
   install_php_stack
+  tune_php_ini
   install_composer
   install_node
   install_redis
   install_mariadb
+  install_phpmyadmin
   install_nginx
+  install_certbot
   LOG_INFO "Prerequisites installed successfully."
 
   collect_install_inputs
@@ -853,6 +911,23 @@ server {
     location /frontend/ {
         alias ${frontend_dist}/;
         try_files \$uri \$uri/ /frontend/index.html;
+    }
+
+    location /phpmyadmin/ {
+        alias /usr/share/phpmyadmin/;
+        index index.php index.html;
+
+        location ~ ^/phpmyadmin/(.+\.php)$ {
+            alias /usr/share/phpmyadmin/\$1;
+            include snippets/fastcgi-php.conf;
+            fastcgi_param SCRIPT_FILENAME /usr/share/phpmyadmin/\$1;
+            fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        }
+
+        location ~* ^/phpmyadmin/(.+\.(?:css|js|png|jpg|jpeg|gif|ico|svg|webp))$ {
+            alias /usr/share/phpmyadmin/\$1;
+            try_files \$uri =404;
+        }
     }
 
     location ~ \.php$ {
