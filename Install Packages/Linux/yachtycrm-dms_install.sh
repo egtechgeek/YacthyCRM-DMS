@@ -377,7 +377,8 @@ run_hostname_flow() {
 
   local sanitized_url="${custom_url%/}"
   declare -g APP_URL="${sanitized_url}"
-  set_env_var "${BACKEND_ENV_FILE}" "APP_URL" "${APP_URL}"
+  set_env_var "${BACKEND_ENV_FILE}" "APP_URL" "${APP_URL}/backend"
+  set_env_var "${BACKEND_ENV_FILE}" "FRONTEND_URL" "${APP_URL}/frontend"
 
   configure_frontend_env
   configure_nginx
@@ -1187,7 +1188,7 @@ EOF
 
 print_summary_upgrade() {
   local env_app_url env_db_host env_db_name env_db_user
-  env_app_url=$(read_env_value "${BACKEND_ENV_FILE}" "APP_URL")
+  env_app_url=$(read_env_value "${BACKEND_ENV_FILE}" "FRONTEND_URL")
   env_db_host=$(read_env_value "${BACKEND_ENV_FILE}" "DB_HOST")
   env_db_name=$(read_env_value "${BACKEND_ENV_FILE}" "DB_DATABASE")
   env_db_user=$(read_env_value "${BACKEND_ENV_FILE}" "DB_USERNAME")
